@@ -18,6 +18,7 @@
 /* Includes */
 #include <vector>
 #include <boost/bind.hpp>
+#include <boost/version.hpp>
 #include "Server.hpp"
 #include "Connection.hpp"
 #include "Configuration.hpp"
@@ -38,6 +39,7 @@ irc::Server::Server(const std::string& address, const std::string& port,
 	debug::DEBUG_LOG(m_configuration.svdomain, "Creating server instance ...");
 
 	/* Register all signals that indicate when the server should exit */
+#if BOOST_VERSION > 104700
 	debug::DEBUG_LOG(m_configuration.svdomain,
 			"Registering signal handler ...");
 	m_signals.add(SIGINT);
@@ -46,6 +48,9 @@ irc::Server::Server(const std::string& address, const std::string& port,
 	m_signals.add(SIGQUIT);
 #endif
 	m_signals.async_wait(boost::bind(&Server::stop, this));
+#else
+#warning "You need Boost 1.47 (at least) to have signals support !"
+#endif
 
 	/* Resolve and bind TCP address / port for incoming connection accept */
 	debug::DEBUG_LOG(m_configuration.svdomain, "Binding address and port ...");
