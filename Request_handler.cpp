@@ -17,6 +17,8 @@
 
 /* Includes */
 #include <string>
+#include <iostream>
+#include <fstream>
 #include <boost/bind.hpp>
 #include "Request_handler.hpp"
 #include "Connection.hpp"
@@ -26,6 +28,7 @@
 #include "Users_manager.hpp"
 #include "Channel_info.hpp"
 #include "Reply_generator.hpp"
+#include "Sanity_check.hpp"
 #include "Debug_log.hpp"
 
 irc::Request_handler::Request_handler(Connection* parent) :
@@ -149,875 +152,1306 @@ void irc::Request_handler::handle_request(void) {
 }
 
 void irc::Request_handler::handle_PASS(void) {
+
 	/* Check status */
-	if (m_parent->getState() == Connection::WAIT_FOR_PASS) { /* Require PASS */
+	if (m_parent->getState() != Connection::WAIT_FOR_PASS) {
 
-		/* Add server prefix */
+		/* Already registered */
 		m_reply.addPrefix(m_parent->getServername());
-
-		/* Check arguments count */
-		if (m_argc == 1) {
-
-			/* Check password */
-			if (m_parent->getConf().server_password.count(m_argv[0])) {
-
-				/* Password match */
-				m_parent->setState(Connection::WAIT_FOR_NICK);
-
-			} else { /* Password don't match */
-				m_reply.ERR_PASSWDMISMATCH();
-				m_parent->write(m_reply.toString());
-			}
-
-		} else { /* No arguments */
-			m_reply.ERR_NEEDMOREPARAMS("PASS");
-			m_parent->write(m_reply.toString());
-		}
-
-	} else { /* Already registered */
 		m_reply.ERR_ALREADYREGISTRED();
 		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
 	}
+
+	/* Check arguments count */
+	if (m_argc != 1) {
+
+		/* Need more params */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NEEDMOREPARAMS("PASS");
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check password */
+	if (m_parent->getConf().server_password.count(m_argv[0])) {
+
+		/* Password match */
+		m_parent->setState(Connection::WAIT_FOR_NICK);
+
+	} else {
+
+		/* Password don't match */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_PASSWDMISMATCH();
+		m_parent->write(m_reply.toString());
+	}
+
 }
 
 void irc::Request_handler::handle_NICK(void) {
+
 	/* Check state */
-	if (m_parent->getState() != Connection::WAIT_FOR_PASS) {
+	if (m_parent->getState() == Connection::WAIT_FOR_PASS) {
 
-		/* Check arguments count */
-		if (m_argc == 1 || m_argc == 2) {
-
-			/* Check if nickname already exist */
-			if (!m_parent->getUsersDatabase().access(m_argv[0])) {
-
-				/* Store nickname */
-				m_parent->setNickname(m_argv[0]);
-
-				/* Update m_parent state if necesary */
-				if (m_parent->getState() == Connection::WAIT_FOR_NICK) {
-					m_parent->setState(Connection::WAIT_FOR_USER);
-
-				} else if (m_parent->getState()
-						== Connection::READY_FOR_MSG) {
-
-					/* Notice users on joined channels of nickname change */
-					m_reply.addPrefix(m_parent->getNickname());
-					m_reply.CMD_NICK(m_argv[0]);
-					m_parent->writeToChannels(m_reply.toString());
-				}
-
-			} else { /* Nickname already exist */
-				m_reply.addPrefix(m_parent->getServername());
-				m_reply.ERR_NICKNAMEINUSE(m_argv[0]);
-				m_parent->write(m_reply.toString());
-			}
-
-		} else { /* No nickname */
-			m_reply.addPrefix(m_parent->getServername());
-			m_reply.ERR_NONICKNAMEGIVEN();
-			m_parent->write(m_reply.toString());
-		}
+		/* Abort command */
+		return;
 	}
+
+	/* Check arguments count */
+	if (m_argc != 1 && m_argc != 2) {
+
+		/* No nickname given */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NONICKNAMEGIVEN();
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check nickname validity */
+	if (Sanity_check::is_valid_nickname(m_argv[0]) == false) {
+
+		/* Bad formated nickname */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_ERRONEUSNICKNAME(m_argv[0]);
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check if nickname already exist */
+	if (m_parent->getUsersDatabase().access(m_argv[0])) {
+
+		/* Nickname already exist */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NICKNAMEINUSE(m_argv[0]);
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* No nickname collision check (ERR_NICKCOLLISION) */
+
+	/* Store nickname */
+	m_parent->setNickname(m_argv[0]);
+
+	/* Update m_parent state if necesary */
+	if (m_parent->getState() == Connection::WAIT_FOR_NICK) {
+
+		/* State require NICK -> require USER to be ready */
+		m_parent->setState(Connection::WAIT_FOR_USER);
+
+	} else if (m_parent->getState() == Connection::READY_FOR_MSG) {
+
+		/* Notice users on joined channels of nickname change */
+		m_reply.addPrefix(m_parent->getPrefix());
+		m_reply.CMD_NICK(m_argv[0]);
+		m_parent->writeToChannels(m_reply.toString());
+	}
+
 }
 
 void irc::Request_handler::handle_USER(void) {
+
 	/* Check state */
-	if (m_parent->getState() == Connection::WAIT_FOR_USER
-			|| m_parent->getState() == Connection::WAIT_FOR_NICK) {
+	if (m_parent->getState() != Connection::WAIT_FOR_USER
+			&& m_parent->getState() != Connection::WAIT_FOR_NICK) {
 
-		/* Add server prefix */
+		/* Already registered */
 		m_reply.addPrefix(m_parent->getServername());
-
-		/* Check arguments count */
-		if (m_argc == 4) {
-
-			/* Store informations */
-			m_parent->setUsername(m_argv[0]);
-			// hostname and server name are already known
-			m_parent->setRealname(m_argv[3]);
-
-			/* Update state */
-			m_parent->setState(Connection::READY_FOR_MSG);
-
-			/* Send 001 message */
-			//m_reply.addPrefix(m_parent->getServername());
-			m_reply.RPL_CUSTOM("001",
-					m_parent->getNickname() + " :Welcome to the "
-							+ m_parent->getServername() + " IRC network "
-							+ m_parent->getNickname());
-
-		} else { /* Arguments error */
-			m_reply.ERR_NEEDMOREPARAMS("USER");
-		}
-
-	} else { /* Already registered */
 		m_reply.ERR_ALREADYREGISTRED();
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
 	}
 
-	/* Send answer */
+	/* Check arguments count */
+	if (m_argc != 4) {
+
+		/* Need more params */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NEEDMOREPARAMS("USER");
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* We don't use ident protocol, fake answer */
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.CMD_NOTICE("AUTH", "*** Looking up your hostname...");
 	m_parent->write(m_reply.toString());
+	m_reply.flush();
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.CMD_NOTICE("AUTH", "** Checking ident...");
+	m_parent->write(m_reply.toString());
+	m_reply.flush();
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.CMD_NOTICE("AUTH", "*** Found your hostname");
+	m_parent->write(m_reply.toString());
+	m_reply.flush();
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.CMD_NOTICE("AUTH",
+			"*** No ident response; username prefixed with ~");
+	m_parent->write(m_reply.toString());
+	m_reply.flush();
+
+	/* Store user informations */
+	m_parent->setUsername("~" + m_argv[0]);
+	/* hostname and server name are already known */
+	m_parent->setRealname(m_argv[3]);
+
+	/* Update state */
+	m_parent->setState(Connection::READY_FOR_MSG);
+
+	/* Send welcome message */
+	send_welcome_msg();
 }
 
 void irc::Request_handler::handle_SERVER(void) {
-	// TODO
+
+	/* Not implemented in this program */
 }
 
 void irc::Request_handler::handle_OPER(void) {
+
 	/* Check state */
-	if (m_parent->getState() == Connection::READY_FOR_MSG) {
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
 
-		/* Add server prefix */
+		/* Abort command */
+		return;
+	}
+
+	/* Check arguments count */
+	if (m_argc != 2) {
+
+		/* Need more params */
 		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NEEDMOREPARAMS("OPER");
+		m_parent->write(m_reply.toString());
 
-		/* Check arguments count */
-		if (m_argc == 2) {
+		/* Abort command */
+		return;
+	}
 
-			/* Check username */
-			std::map<std::string, std::string>::const_iterator ircop =
-					m_parent->getConf().server_ircop.find(m_argv[0]);
-			if (ircop != m_parent->getConf().server_ircop.end()) {
+	/* Ignored : ERR_NOOPERHOST */
 
-				/* Check password */
-				if ((*ircop).second == m_argv[1]) {
+	/* Find username */
+	std::map<std::string, std::string>::const_iterator ircop =
+			m_parent->getConf().server_ircop.find(m_argv[0]);
 
-					/* Well done, your oper now ! */
-					m_parent->setIrcOp(true);
-					m_reply.RPL_YOUREOPER();
+	/* Check username */
+	if (ircop == m_parent->getConf().server_ircop.end()) {
 
-				} else { /* Wrong password */
-					m_reply.ERR_PASSWDMISMATCH();
-				}
+		/* Wrong username */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_PASSWDMISMATCH();
+		m_parent->write(m_reply.toString());
 
-			} else { /* Wrong username */
-				m_reply.ERR_PASSWDMISMATCH();
-			}
+		/* Abort command */
+		return;
+	}
 
-		} else { /* Arguments error */
-			m_reply.ERR_NEEDMOREPARAMS("OPER");
-		}
+	/* Check password */
+	if ((*ircop).second == m_argv[1]) {
 
-		/* Send answer */
+		/* Well done, your oper now ! */
+		m_parent->setIrcOp(true);
+
+		/* Notice user of +o */
+		m_reply.addPrefix(m_parent->getPrefix());
+		m_reply.RPL_YOUREOPER();
+		m_parent->write(m_reply.toString());
+
+	} else {
+
+		/* Wrong password */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_PASSWDMISMATCH();
 		m_parent->write(m_reply.toString());
 	}
 }
 
 void irc::Request_handler::handle_QUIT(void) {
+
 	/* Check state */
-	if (m_parent->getState() == Connection::READY_FOR_MSG) {
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
 
-		/* Close m_parent */
-		if (m_argc == 1) { /* With custom quit message */
-			m_parent->close_because(m_argv[0]);
+		/* Abort command */
+		return;
+	}
 
-		} else { /* With empty quit message */
-			m_parent->close_because("");
-		}
+	/* Close connection */
+	if (m_argc == 1) {
+
+		/* With custom quit message */
+		m_parent->close_because(m_argv[0]);
+
+	} else {
+
+		/* With empty quit message */
+		m_parent->close_because("");
 	}
 }
 
 void irc::Request_handler::handle_SQUIT(void) {
-	// TODO
+
+	/* Not implemented in this program */
 }
 
 void irc::Request_handler::handle_JOIN(void) {
+
 	/* Check state */
-	if (m_parent->getState() == Connection::READY_FOR_MSG) {
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
 
-		/* Check arguments count */
-		if (m_argc == 1 || m_argc == 2) {
+		/* Abort command */
+		return;
+	}
 
-			/* Search channel */
-			boost::shared_ptr<Channel_info> channel =
-					m_parent->getChannelsDatabase().access(m_argv[0]);
+	/* Check arguments count */
+	if (m_argc != 1 && m_argc != 2) {
 
-			/* Check if channel exist */
-			if (channel) {
+		/* Need more params */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NEEDMOREPARAMS("JOIN");
+		m_parent->write(m_reply.toString());
 
-				/* Check if channel is protected */
-				if (channel->isPrivate()) {
+		/* Abort command */
+		return;
+	}
 
-					/* Check password */
-					if (m_argc == 2 && channel->getPassword() == m_argv[1]) {
+	/* Check for join count limit */
+	if (m_parent->getJoinCount() == m_parent->getJoinCoutLimit()) {
 
-						/* Check if channel is on invitation */
-						if (channel->isInviteOnly()) {
+		/* Limit reached */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_TOOMANYCHANNELS(m_argv[0]);
+		m_parent->write(m_reply.toString());
 
-							/* Check if user is invited to join the channel */
-							if (channel->isInvited(
-									m_parent->shared_from_this())) {
+		/* Abort command */
+		return;
+	}
 
-								/* Check if channel is full */
-								if (channel->getUsersCount()
-										== channel->getUsersLimit()) {
-									m_reply.addPrefix(
-											m_parent->getServername());
-									m_reply.ERR_CHANNELISFULL(m_argv[0]); /* no more place */
-									m_parent->write(m_reply.toString());
+	/* Search channel */
+	boost::shared_ptr<Channel_info> channel =
+			m_parent->getChannelsDatabase().access(m_argv[0]);
 
-								} else { /* Can join the channel */
+	/* Check if channel exist */
+	if (channel) {
 
-									/* Join the channel */
-									m_reply.addPrefix(m_parent->getNickname());
-									channel->addJoin(
-											m_parent->shared_from_this());
-									m_parent->addJoin(channel);
-									m_reply.CMD_JOIN(m_argv[0], m_argv[1]);
-									channel->writeToAll(m_reply.toString());
-								}
+		/* Check if user is banned */
+		if (channel->isBanned(m_parent->getPrefix())) {
 
-							} else { /* User is not invited to join the channel */
-								m_reply.addPrefix(m_parent->getServername());
-								m_reply.ERR_INVITEONLYCHAN(m_argv[0]);
-								m_parent->write(m_reply.toString());
-							}
+			/* You're banned ... */
+			m_reply.addPrefix(m_parent->getServername());
+			m_reply.ERR_BANNEDFROMCHAN(m_argv[0]);
+			m_parent->write(m_reply.toString());
 
-						} else { /* Channel don't require invitation */
+			/* Abort command */
+			return;
+		}
 
-							/* Check if channel is full */
-							if (channel->getUsersCount()
-									== channel->getUsersLimit()) {
-								m_reply.addPrefix(m_parent->getServername());
-								m_reply.ERR_CHANNELISFULL(m_argv[0]); /* no more place */
-								m_parent->write(m_reply.toString());
+		/* Check if channel is protected */
+		if (channel->isPrivate()) {
 
-							} else { /* Can join the channel */
+			/* Check arguments count */
+			if (m_argc != 2) {
 
-								/* Join the channel */
-								m_reply.addPrefix(m_parent->getNickname());
-								channel->addJoin(
-										m_parent->shared_from_this());
-								m_parent->addJoin(channel);
-								m_reply.CMD_JOIN(m_argv[0], m_argv[1]);
-								channel->writeToAll(m_reply.toString());
-							}
-						}
+				/* Need more params */
+				m_reply.addPrefix(m_parent->getServername());
+				m_reply.ERR_NEEDMOREPARAMS("JOIN");
+				m_parent->write(m_reply.toString());
 
-					} else { /* Password don't match */
-						m_reply.addPrefix(m_parent->getServername());
-						m_reply.ERR_PASSWDMISMATCH();
-						m_parent->write(m_reply.toString());
-					}
-
-				} else { /* Channel is not password protected */
-
-					/* Check if channel is on invitation */
-					if (channel->isInviteOnly()) {
-
-						/* Check if user is invited to join the channel */
-						if (channel->isInvited(
-								m_parent->shared_from_this())) {
-
-							/* Check if channel is full */ // TODO useless (channel created = user nb = 0)
-							if (channel->getUsersCount()
-									== channel->getUsersLimit()) {
-								m_reply.addPrefix(m_parent->getServername());
-								m_reply.ERR_CHANNELISFULL(m_argv[0]); /* no more place */
-								m_parent->write(m_reply.toString());
-
-							} else { /* Can join the channel */
-
-								/* Join the channel */
-								m_reply.addPrefix(m_parent->getNickname());
-								channel->addJoin(
-										m_parent->shared_from_this());
-								m_parent->addJoin(channel);
-								m_reply.CMD_JOIN(m_argv[0], m_argv[1]);
-								channel->writeToAll(m_reply.toString());
-							}
-						} else { /* User is not invited to join the channel */
-							m_reply.addPrefix(m_parent->getServername());
-							m_reply.ERR_INVITEONLYCHAN(m_argv[0]);
-							m_parent->write(m_reply.toString());
-						}
-
-					} else { /* Channel don't require invitation */
-
-						/* Check if channel is full */
-						if (channel->getUsersCount()
-								== channel->getUsersLimit()) {
-							m_reply.addPrefix(m_parent->getServername());
-							m_reply.ERR_CHANNELISFULL(m_argv[0]); /* no more place */
-							m_parent->write(m_reply.toString());
-
-						} else { /* Can join the channel */
-
-							/* Join the channel */
-							m_reply.addPrefix(m_parent->getNickname());
-							channel->addJoin(m_parent->shared_from_this());
-							m_parent->addJoin(channel);
-							m_reply.CMD_JOIN(m_argv[0], m_argv[1]);
-							channel->writeToAll(m_reply.toString());
-						}
-					}
-				}
-
-			} else { /* Channel don't exist */
-
-				/* Add channel */
-				if (m_parent->getChannelsDatabase().getChannelsCount()
-						== m_parent->getChannelsDatabase().getChannelsCountLimit()) {
-
-					/* Limit reached */
-					m_reply.addPrefix(m_parent->getServername());
-					m_reply.ERR_TOOMANYCHANNELS(m_argv[0]);
-					m_parent->write(m_reply.toString());
-
-				} else { /* Create channel */
-
-					m_reply.addPrefix(m_parent->getNickname());
-					m_parent->getChannelsDatabase().add(m_argv[0],
-							m_parent->shared_from_this());
-					m_parent->addJoin(
-							m_parent->getChannelsDatabase().access(m_argv[0]));
-					m_reply.CMD_JOIN(m_argv[0], m_argv[1]);
-					m_parent->write(m_reply.toString());
-				}
+				/* Abort command */
+				return;
 			}
 
-		} else { /* Arguments error */
-			m_reply.addPrefix(m_parent->getServername());
-			m_reply.ERR_NEEDMOREPARAMS("JOIN");
-			m_parent->write(m_reply.toString());
+			/* Check password */
+			if (channel->getPassword() != m_argv[1]) {
+
+				/* Password don't match */
+				m_reply.addPrefix(m_parent->getServername());
+				m_reply.ERR_BADCHANNELKEY(m_argv[0]);
+				m_parent->write(m_reply.toString());
+
+				/* Abort command */
+				return;
+			}
 		}
+
+		/* Check if channel is on invitation */
+		if (channel->isInviteOnly()) {
+
+			/* Check if user is invited to join the channel */
+			if (channel->isInvited(m_parent->shared_from_this()) == false) {
+
+				/* User is not invited to join the channel */
+				m_reply.addPrefix(m_parent->getServername());
+				m_reply.ERR_INVITEONLYCHAN(m_argv[0]);
+				m_parent->write(m_reply.toString());
+
+				/* Abort command */
+				return;
+			}
+		}
+
+		/* Check if channel is full */
+		if (channel->getUsersCount() == channel->getUsersLimit()) {
+
+			/* No more free place */
+			m_reply.addPrefix(m_parent->getServername());
+			m_reply.ERR_CHANNELISFULL(m_argv[0]);
+			m_parent->write(m_reply.toString());
+
+			/* Abort command */
+			return;
+		}
+
+	} else { /* Channel don't exist */
+
+		/* Check channel name validity */
+		if (Sanity_check::is_valid_channame(m_argv[0]) == false) {
+
+			/* Channel name is crappy */
+			m_reply.addPrefix(m_parent->getServername());
+			m_reply.ERR_NOSUCHCHANNEL(m_argv[0]);
+			m_parent->write(m_reply.toString());
+
+			/* Abort command */
+			return;
+		}
+
+		/* Create channel */
+		channel = m_parent->getChannelsDatabase().add(m_argv[0]);
 	}
+
+	/* Add user to channel (channel and user side) */
+	channel->addJoin(m_parent->shared_from_this(), true);
+	m_parent->addJoin(m_parent->getChannelsDatabase().access(m_argv[0]));
+
+	/* Notice users on channel of JOIN */
+	m_reply.addPrefix(m_parent->getPrefix());
+	m_reply.CMD_JOIN(m_argv[0], m_argv[1]);
+	channel->writeToAll(m_reply.toString());
+
+	/* Remarks: should normally send TOPIC and users list */
 }
 
 void irc::Request_handler::handle_PART(void) {
+
 	/* Check state */
-	if (m_parent->getState() == Connection::READY_FOR_MSG) {
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
 
-		/* Check arguments count */
-		if (m_argc == 1) {
-
-			/* Search channel */
-			boost::shared_ptr<Channel_info> channel =
-					m_parent->getChannelsDatabase().access(m_argv[0]);
-
-			/* Check if channel exist */
-			if (channel) {
-
-				/* Check if user as join the channel */
-				if (m_parent->asJoin(channel)) {
-
-					/* Notice users on channel of PART */
-					m_reply.addPrefix(m_parent->getNickname());
-					m_reply.CMD_PART(m_argv[0]);
-					channel->writeToAll(m_reply.toString());
-
-					/* Remove user from channel */
-					m_parent->removeJoin(channel);
-					channel->removeJoin(m_parent->shared_from_this());
-
-				} else { /* User as not join the channel before PART */
-					m_reply.addPrefix(m_parent->getServername());
-					m_reply.ERR_NOTONCHANNEL(m_argv[0]);
-					m_parent->write(m_reply.toString());
-				}
-
-			} else { /* Channel don't exist */
-				m_reply.addPrefix(m_parent->getServername());
-				m_reply.ERR_NOSUCHCHANNEL(m_argv[0]);
-				m_parent->write(m_reply.toString());
-			}
-
-		} else { /* Arguments error */
-			m_reply.addPrefix(m_parent->getServername());
-			m_reply.ERR_NEEDMOREPARAMS("PART");
-			m_parent->write(m_reply.toString());
-		}
+		/* Abort command */
+		return;
 	}
+
+	/* Check arguments count */
+	if (m_argc != 1) {
+
+		/* Need more params */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NEEDMOREPARAMS("PART");
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Search channel */
+	boost::shared_ptr<Channel_info> channel =
+			m_parent->getChannelsDatabase().access(m_argv[0]);
+
+	/* Check if channel exist */
+	if (!channel) {
+
+		/* Channel don't exist */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOSUCHCHANNEL(m_argv[0]);
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check if user as join the channel */
+	if (m_parent->asJoin(channel) == false) {
+
+		/* User as not join the channel before PART */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOTONCHANNEL(m_argv[0]);
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Remove user from channel (client and channel side) */
+	m_parent->removeJoin(channel);
+	channel->removeJoin(m_parent->shared_from_this());
+
+	/* Notice users on channel of client PART */
+	m_reply.addPrefix(m_parent->getPrefix());
+	m_reply.CMD_PART(m_argv[0]);
+	channel->writeToAll(m_reply.toString());
 }
 
 void irc::Request_handler::handle_MODE(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_TOPIC(void) {
-	/* Check status */
-	if (m_parent->getState() == Connection::READY_FOR_MSG) {
 
-		/* Check arguments */
-		if (m_argc == 1) { /* Read topic */
+	/* Check state */
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
 
-			/* Search channel */
-			boost::shared_ptr<Channel_info> channel =
-					m_parent->getChannelsDatabase().access(m_argv[0]);
+		/* Abort command */
+		return;
+	}
 
-			/* Check if channel exist */
-			if (channel) {
+	/* Check arguments count */
+	if (m_argc != 1 && m_argc != 2) {
 
-				/* Check if topic is set */
-				if (channel->getTopic() != "") {
-					m_reply.RPL_TOPIC(m_argv[0], channel->getTopic());
-					m_parent->write(m_reply.toString());
+		/* Need more params */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NEEDMOREPARAMS("TOPIC");
+		m_parent->write(m_reply.toString());
 
-				} else {/* Topic is not set */
-					m_reply.RPL_NOTOPIC(m_argv[0]);
-					m_parent->write(m_reply.toString());
-				}
+		/* Abort command */
+		return;
+	}
 
-			} else { /* Channel don't exist */
-				m_reply.ERR_NOSUCHCHANNEL(m_argv[0]);
-				m_parent->write(m_reply.toString());
-			}
+	/* Search channel */
+	boost::shared_ptr<Channel_info> channel =
+			m_parent->getChannelsDatabase().access(m_argv[0]);
 
-		} else if (m_argc == 2) { /* Set topic */
+	/* Check if channel exist */
+	if (!channel) {
 
-			/* Search channel */
-			boost::shared_ptr<Channel_info> channel =
-					m_parent->getChannelsDatabase().access(m_argv[0]);
+		/* Channel don't exist */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOSUCHCHANNEL(m_argv[0]);
+		m_parent->write(m_reply.toString());
 
-			/* Check if channel exist */
-			if (channel) {
+		/* Abort command */
+		return;
+	}
 
-				/* If topic can be set by non-op */
-				if (channel->isTopicSetByOpOnly()) {
+	/* Check arguments */
+	if (m_argc == 1) { /* Read topic */
 
-					/* Check if user is on the channel */
-					if (channel->asJoin(m_parent->shared_from_this())) {
+		/* Check if topic is set */
+		if (channel->getTopic() != "") {
 
-						/* Check if user is op */
-						if (channel->access(m_parent->shared_from_this()).isOp()) {
+			/* Send topic */
+			m_reply.addPrefix(m_parent->getServername());
+			m_reply.RPL_TOPIC(m_argv[0], channel->getTopic());
+			m_parent->write(m_reply.toString());
 
-							/* Change topic */
-							channel->setTopic(m_argv[1]);
-							m_reply.CMD_TOPIC(m_argv[0], m_argv[1]);
-							channel->writeToAll(m_reply.toString());
+		} else {
 
-						} else { /* Don't have auth to change topic */
-							m_reply.ERR_CHANOPRIVSNEEDED(m_argv[0]);
-							m_parent->write(m_reply.toString());
-						}
-
-					} else { /* Not on the channel */
-						m_reply.ERR_NOTONCHANNEL(m_argv[0]);
-						m_parent->write(m_reply.toString());
-					}
-
-				} else {
-
-					/* Change topic */
-					channel->setTopic(m_argv[1]);
-					m_reply.CMD_TOPIC(m_argv[0], m_argv[1]);
-					channel->writeToAll(m_reply.toString());
-				}
-
-			} else { /* Channel don't exist */
-				m_reply.ERR_NOSUCHCHANNEL(m_argv[0]);
-				m_parent->write(m_reply.toString());
-			}
-
-		} else { /* Arguments error */
-			m_reply.ERR_NEEDMOREPARAMS("TOPIC");
+			/* Topic is not set */
+			m_reply.addPrefix(m_parent->getServername());
+			m_reply.RPL_NOTOPIC(m_argv[0]);
 			m_parent->write(m_reply.toString());
 		}
+
+	} else { /* Set topic */
+
+		/* Check if user is on the channel */
+		if (m_parent->asJoin(channel) == false) {
+
+			/* Not on the channel */
+			m_reply.addPrefix(m_parent->getServername());
+			m_reply.ERR_NOTONCHANNEL(m_argv[0]);
+			m_parent->write(m_reply.toString());
+
+			/* Abort command */
+			return;
+		}
+
+		/* If topic can be set by non-op */
+		if (channel->isTopicSetByOpOnly()) {
+
+			/* Check if user is op */
+			if (channel->access(m_parent->shared_from_this()).isOp() == false) {
+
+				/* Don't have auth to change topic */
+				m_reply.addPrefix(m_parent->getServername());
+				m_reply.ERR_CHANOPRIVSNEEDED(m_argv[0]);
+				m_parent->write(m_reply.toString());
+
+				/* Abort command */
+				return;
+			}
+		}
+
+		/* Change topic */
+		channel->setTopic(m_argv[1]);
+
+		/* Notice users on channels of topic change */
+		m_reply.addPrefix(m_parent->getPrefix());
+		m_reply.CMD_TOPIC(m_argv[0], m_argv[1]);
+		channel->writeToAll(m_reply.toString());
 	}
 }
 
 void irc::Request_handler::handle_NAMES(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_LIST(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_INVITE(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_KICK(void) {
+
 	/* Check state */
-	if (m_parent->getState() == Connection::READY_FOR_MSG) {
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
 
-		/* Check arguments count */
-		if (m_argc == 2 || m_argc == 3) {
-
-			/* Search channel */
-			boost::shared_ptr<Channel_info> channel =
-					m_parent->getChannelsDatabase().access(m_argv[0]);
-
-			/* Check if channel exist */
-			if (channel) {
-
-				/* Check is user is on channel */
-				if (m_parent->asJoin(channel)) {
-
-					/* Check is user is op on channel */
-					if (channel->access(m_parent->shared_from_this()).isOp()) {
-
-						/* Search user */
-						boost::shared_ptr<Connection> user =
-								m_parent->getUsersDatabase().access(m_argv[1]);
-
-						/* Check if user as join the channel */
-						if (user && user->asJoin(channel)) {
-
-							/* Notice users on channel of PART */
-							m_reply.addPrefix(m_parent->getNickname());
-							m_reply.CMD_KICK(m_argv[0], m_argv[1],
-									(m_argc == 3) ? m_argv[2] : "");
-							channel->writeToAll(m_reply.toString());
-
-							/* Remove user from channel */
-							user->removeJoin(channel);
-							channel->removeJoin(user);
-						}
-
-					} else { /* User is not op on channel */
-						m_reply.addPrefix(m_parent->getServername());
-						m_reply.ERR_CHANOPRIVSNEEDED(m_argv[0]);
-						m_parent->write(m_reply.toString());
-					}
-
-				} else { /* User not on channel */
-					m_reply.addPrefix(m_parent->getServername());
-					m_reply.ERR_NOTONCHANNEL(m_argv[0]);
-					m_parent->write(m_reply.toString());
-				}
-
-			} else { /* Channel don't exist */
-				m_reply.addPrefix(m_parent->getServername());
-				m_reply.ERR_NOSUCHCHANNEL(m_argv[0]);
-				m_parent->write(m_reply.toString());
-			}
-
-		} else {/* Arguments error */
-			m_reply.addPrefix(m_parent->getServername());
-			m_reply.ERR_NEEDMOREPARAMS("KICK");
-			m_parent->write(m_reply.toString());
-		}
+		/* Abort command */
+		return;
 	}
+
+	/* Check arguments count */
+	if (m_argc != 2 && m_argc != 3) {
+
+		/* Need more params */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NEEDMOREPARAMS("KICK");
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Search channel */
+	boost::shared_ptr<Channel_info> channel =
+			m_parent->getChannelsDatabase().access(m_argv[0]);
+
+	/* Check if channel exist */
+	if (!channel) {
+
+		/* Channel don't exist */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOSUCHCHANNEL(m_argv[0]);
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check is user is op on channel */
+	if (channel->access(m_parent->shared_from_this()).isOp() == false) {
+
+		/* User is not op on channel */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_CHANOPRIVSNEEDED(m_argv[0]);
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Search user */
+	boost::shared_ptr<Connection> user = m_parent->getUsersDatabase().access(
+			m_argv[1]);
+
+	/* Check is user exist and is on the channel */
+	if (!user || m_parent->asJoin(channel) == false) {
+
+		/* User not on channel */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOTONCHANNEL(m_argv[0]);
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Remove user from channel (client and channel side) */
+	user->removeJoin(channel);
+	channel->removeJoin(user);
+
+	/* Notice users on channel of client KICK */
+	m_reply.addPrefix(m_parent->getPrefix());
+	m_reply.CMD_KICK(m_argv[0], m_argv[1], (m_argc == 3) ? m_argv[2] : "");
+	channel->writeToAll(m_reply.toString());
 }
 
 void irc::Request_handler::handle_VERSION(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_STATS(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_LINKS(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_TIME(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_CONNECT(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_TRACE(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_ADMIN(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_INFO(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_WHO(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_WHOIS(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_WHOAS(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_NOTICE(void) {
+
 	/* Check state */
-	if (m_parent->getState() == Connection::READY_FOR_MSG) {
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
 
-		/* Check arguments count */
-		if (m_argc == 2) {
-
-			/* Switch according mask */
-			if (m_argv[0][0] == '#') { /* Channel */
-
-				/* Forbidden */
-				//TODO
-			} else { /* Nickname */
-
-				/* Search user */
-				boost::shared_ptr<Connection> user =
-						m_parent->getUsersDatabase().access(m_argv[0]);
-
-				/* Check if user exist */
-				if (user) {
-
-					/* Craft and send message */
-					m_reply.addPrefix(m_parent->getNickname());
-					m_reply.CMD_NOTICE(m_argv[0], m_argv[1]);
-					user->write(m_reply.toString());
-					m_parent->write(m_reply.toString());
-
-				} else { /* User don't exist */
-					m_reply.addPrefix(m_parent->getServername());
-					m_reply.ERR_NOSUCHNICK(m_argv[0]);
-					m_parent->write(m_reply.toString());
-				}
-			}
-
-		} else if (m_argc == 1) { /* No text argument */
-			m_reply.addPrefix(m_parent->getServername());
-			m_reply.ERR_NOTEXTTOSEND();
-			m_parent->write(m_reply.toString());
-
-		} else { /* Arguments error */
-			m_reply.addPrefix(m_parent->getServername());
-			m_reply.ERR_NORECIPIENT("NOTICE");
-			m_parent->write(m_reply.toString());
-		}
+		/* Abort command */
+		return;
 	}
+
+	/* Check arguments count */
+	if (m_argc == 1) {
+
+		/* No recipient */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NORECIPIENT("NOTICE");
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+
+	} else if (m_argc != 2) {
+
+		/* No text to send */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOTEXTTOSEND();
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Search user */
+	boost::shared_ptr<Connection> user = m_parent->getUsersDatabase().access(
+			m_argv[0]);
+
+	/* Check if user exist */
+	if (!user) {
+
+		/* User don't exist */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOSUCHNICK(m_argv[0]);
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Update away status if necesary */
+	if (m_parent->isAway()) {
+
+		/* User is no more away */
+		m_parent->setAway(false);
+
+		/* Notice user that is no more away */
+		m_reply.addPrefix(m_parent->getPrefix());
+		m_reply.CMD_NOTICE(m_argv[0], m_argv[1]);
+		m_parent->write(m_reply.toString());
+		m_reply.flush();
+	}
+
+	/* Send message to remote user */
+	m_reply.addPrefix(m_parent->getPrefix());
+	m_reply.CMD_NOTICE(m_argv[0], m_argv[1]);
+	m_parent->write(m_reply.toString());
+	user->write(m_reply.toString());
 }
 
 void irc::Request_handler::handle_PRIVMSG(void) {
+
 	/* Check state */
-	if (m_parent->getState() == Connection::READY_FOR_MSG) {
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
 
-		/* Check arguments count */
-		if (m_argc == 2) {
+		/* Abort command */
+		return;
+	}
 
-			/* Switch according mask */
-			if (m_argv[0][0] == '#') { /* Channel */
+	/* Check arguments count */
+	if (m_argc == 1) {
 
-				/* Search channel */
-				boost::shared_ptr<Channel_info> channel =
-						m_parent->getChannelsDatabase().access(m_argv[0]);
+		/* No recipient */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NORECIPIENT("NOTICE");
+		m_parent->write(m_reply.toString());
 
-				/* Check if channel exist */
-				if (channel) {
+		/* Abort command */
+		return;
 
-					/* Craft and send message */
-					m_reply.addPrefix(m_parent->getNickname());
-					m_reply.CMD_PRIVMSG(m_argv[0], m_argv[1]);
-					channel->writeToAll(m_reply.toString());
+	} else if (m_argc != 2) {
 
-				} else { /* Channel don't exist */
-					m_reply.addPrefix(m_parent->getServername());
-					m_reply.ERR_NOSUCHCHANNEL(m_argv[0]);
-					m_parent->write(m_reply.toString());
-				}
+		/* No text to send */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOTEXTTOSEND();
+		m_parent->write(m_reply.toString());
 
-			} else { /* Nickname */
+		/* Abort command */
+		return;
+	}
 
-				/* Search user */
-				boost::shared_ptr<Connection> user =
-						m_parent->getUsersDatabase().access(m_argv[0]);
+	/* Search user */
+	boost::shared_ptr<Connection> user = m_parent->getUsersDatabase().access(
+			m_argv[0]);
 
-				/* Check if user exist */
-				if (user) {
+	/* Check if user exist */
+	if (user) {
 
-					/* Craft and send message */
-					m_reply.addPrefix(m_parent->getNickname());
-					m_reply.CMD_PRIVMSG(m_argv[0], m_argv[1]);
-					user->write(m_reply.toString());
-					m_parent->write(m_reply.toString());
+		/* Send message to remote user */
+		m_reply.addPrefix(m_parent->getPrefix());
+		m_reply.CMD_PRIVMSG(m_argv[0], m_argv[1]);
+		user->write(m_reply.toString());
 
-				} else { /* User don't exist */
-					m_reply.addPrefix(m_parent->getServername());
-					m_reply.ERR_NOSUCHNICK(m_argv[0]);
-					m_parent->write(m_reply.toString());
-				}
-			}
+		/* Send-back away message if enable */
+		if (user->isAway()) {
 
-		} else if (m_argc == 1) { /* No text argument */
-			m_reply.addPrefix(m_parent->getServername());
-			m_reply.ERR_NOTEXTTOSEND();
-			m_parent->write(m_reply.toString());
-
-		} else { /* Arguments error */
-			m_reply.addPrefix(m_parent->getServername());
-			m_reply.ERR_NORECIPIENT("PRIVMSG");
+			/* Send away message */
+			m_reply.flush();
+			m_reply.addPrefix(user->getPrefix());
+			m_reply.CMD_PRIVMSG(m_argv[0], user->getAwayMsg());
 			m_parent->write(m_reply.toString());
 		}
+
+	} else { /* Switch to channel mode */
+
+		/* Search channel */
+		boost::shared_ptr<Channel_info> channel =
+				m_parent->getChannelsDatabase().access(m_argv[0]);
+
+		/* Check if channel exist */
+		if (channel) {
+
+			/* Send message to remote channel */
+			m_reply.addPrefix(m_parent->getPrefix());
+			m_reply.CMD_PRIVMSG(m_argv[0], m_argv[1]);
+			channel->writeToAll(m_reply.toString());
+
+		} else {
+
+			/* User don't exist */
+			m_reply.addPrefix(m_parent->getServername());
+			m_reply.ERR_NOSUCHNICK(m_argv[0]);
+			m_parent->write(m_reply.toString());
+
+			/* Abort command */
+			return;
+		}
+	}
+
+	/* Update away status if necesary */
+	if (m_parent->isAway()) {
+
+		/* User is no more away */
+		m_parent->setAway(false);
+
+		/* Notice user that is no more away */
+		m_reply.flush();
+		m_reply.addPrefix(m_parent->getPrefix());
+		m_reply.CMD_NOTICE(m_argv[0], m_argv[1]);
+		m_parent->write(m_reply.toString());
 	}
 }
 
 void irc::Request_handler::handle_KILL(void) {
+
 	/* Check state */
-	if (m_parent->getState() == Connection::READY_FOR_MSG) {
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
 
-		/* Add server prefix */
-		m_reply.addPrefix(m_parent->getServername());
-
-		/* Check arguments count */
-		if (m_argc == 2) {
-
-			/* Check if user is irc op */
-			if (m_parent->isIrcOp()) {
-
-				/* Search user */
-				boost::shared_ptr<Connection> user =
-						m_parent->getUsersDatabase().access(m_argv[0]);
-
-				/* If user is found */
-				if (user) {
-
-					/* Force close with comment */
-					user->close_because(m_argv[1]);
-
-					/* Back-notice op of KILL success */
-					m_reply.CMD_NOTICE(m_parent->getNickname(),
-							"KILL success !");
-
-				} else { /* User not found */
-					m_reply.ERR_NOSUCHNICK(m_argv[0]);
-				}
-
-			} else { /* No auth to do what */
-				m_reply.ERR_NOPRIVILEGES();
-			}
-
-		} else { /* Arguments error */
-			m_reply.ERR_NEEDMOREPARAMS("KILL");
-		}
-
-		/* Send answer */
-		m_parent->write(m_reply.toString());
+		/* Abort command */
+		return;
 	}
+
+	/* Check arguments count */
+	if (m_argc != 2) {
+
+		/* Need more params */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NEEDMOREPARAMS("KILL");
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check if user is irc op */
+	if (m_parent->isIrcOp() == false) {
+
+		/* No privileges */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOPRIVILEGES();
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Search user */
+	boost::shared_ptr<Connection> user = m_parent->getUsersDatabase().access(
+			m_argv[0]);
+
+	/* If user is found */
+	if (!user) {
+
+		/* User don't exist */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOSUCHNICK(m_argv[0]);
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Force close with comment */
+	user->close_because(m_argv[1]);
+
+	/* Back-notice op of KILL success */
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.CMD_NOTICE(m_parent->getNickname(), "User connection killed !");
+	m_parent->write(m_reply.toString());
 }
 
 void irc::Request_handler::handle_PING(void) {
-	/* Add server prefix */
-	m_reply.addPrefix(m_parent->getServername());
 
-	/* Check arguments count */
-	if (m_argc == 1) { /* Only target server is specified */
+	/* Check state */
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
 
-		/* Check target server */
-		if (m_argv[0] == m_parent->getServername()) { /* Current server targeted */
-			m_reply.CMD_PONG(m_argv[0]); /* Answer with PONG */
-
-		} else { /* Another server (no server to server communcation in this program) */
-			m_reply.ERR_NOSUCHSERVER(m_argv[0]); /* Error server not found */
-		}
-
-	} else if (m_argc == 2) { /* Target server and deamon specified */
-
-		/* Check target server */
-		if (m_argv[0] == m_parent->getServername()) { /* Current server targeted */
-			m_reply.CMD_PONG(m_argv[0], m_argv[1]); /* Answer with PONG */
-
-		} else { /* Another server (no server to server communcation in this program) */
-			m_reply.ERR_NOSUCHSERVER(m_argv[0]); /* Error server not found */
-		}
-
-	} else { /* Other */
-		m_reply.ERR_NOORIGIN(); /* Ping error */
+		/* Abort command */
+		return;
 	}
 
-	/* Send answer */
+	/* Check arguments count */
+	if (m_argc != 1 && m_argc != 2) {
+
+		/* Need more params */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOORIGIN();
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check target server */
+	if (m_argv[0] == m_parent->getServername()) {
+
+		/* Ping remote server is not implemented in this program */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOSUCHSERVER(m_argv[0]);
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Answer with PONG */
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.CMD_PONG(m_argv[0], (m_argc == 2) ? m_argv[1] : "");
 	m_parent->write(m_reply.toString());
 }
 
 void irc::Request_handler::handle_PONG(void) {
-	/* Add server prefix */
-	m_reply.addPrefix(m_parent->getServername());
+
+	/* Check state */
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
+
+		/* Abort command */
+		return;
+	}
 
 	/* Check arguments count */
-	if (m_argc == 2) { /* PING target + deamon */
+	if (m_argc != 2) {
 
-		/* Check ping target */
-		if (m_argv[0] == m_parent->getServername()) { /* This server */
-
-			/* Check ping deamon */
-			if (m_argv[1] == m_parent->getLastPingArg()) {
-
-				/* Restart deadline timer */
-				m_parent->restartDeadlineTimer();
-
-			} else { /* PONG with unknwon deamon */
-				m_reply.ERR_NOORIGIN(); /* Ping error */
-				m_parent->write(m_reply.toString());
-			}
-
-		} else { /* Another server */
-			m_reply.ERR_NOSUCHSERVER(m_argv[0]); /* Error server not found */
-			m_parent->write(m_reply.toString());
-		}
-
-	} else { /* No deamon or server specified */
-		m_reply.ERR_NOORIGIN(); /* Ping error */
+		/* Need more params */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOORIGIN();
 		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check target server */
+	if (m_argv[0] == m_parent->getServername()) {
+
+		/* Ping remote server is not implemented in this program */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOSUCHSERVER(m_argv[0]);
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check ping deamon */
+	if (m_argv[1] == m_parent->getLastPingArg()) {
+
+		/* Restart deadline timer */
+		m_parent->restartDeadlineTimer();
 	}
 }
 
 void irc::Request_handler::handle_ERROR(void) {
+
 	/* Check state */
-	if (m_parent->getState() == Connection::READY_FOR_MSG) {
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
 
-		/* Add server prefix */
-		m_reply.addPrefix(m_parent->getServername());
-
-		/* Check arguments count */
-		if (m_argc == 1) {
-
-			/* Check if user is irc op */
-			if (m_parent->isIrcOp()) {
-
-				/* Output error to server stderr */
-				std::cerr << "[ERROR] from " << m_parent->getNickname()
-						<< ": " << m_argv[0] << std::endl;
-
-				/* Prepare NOTICE message */
-				m_reply.CMD_NOTICE(m_parent->getServername(),
-						"ERROR from " + m_parent->getNickname() + ": "
-								+ m_argv[0]);
-
-				/* Notice all irc ops with notice */
-				m_parent->getUsersDatabase().writeToIrcOp(m_reply.toString());
-
-			} else { /* No auth to do what */
-				m_reply.ERR_NOPRIVILEGES();
-				m_parent->write(m_reply.toString());
-			}
-
-		} else { /* Arguments error */
-			m_reply.ERR_NEEDMOREPARAMS("ERROR");
-			m_parent->write(m_reply.toString());
-		}
+		/* Abort command */
+		return;
 	}
+
+	/* Check arguments count */
+	if (m_argc != 1) {
+
+		/* Need more params */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NEEDMOREPARAMS("ERROR");
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check if user is irc op */
+	if (m_parent->isIrcOp() == false) {
+
+		/* No auth to do what */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOPRIVILEGES();
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Output error to server stderr */
+	std::cerr << "[ERROR] from " << m_parent->getNickname() << ": " << m_argv[0]
+			<< std::endl;
+
+	/* Prepare NOTICE message */
+	m_reply.addPrefix(m_parent->getPrefix());
+	m_reply.CMD_NOTICE(m_parent->getServername(), "ERROR: " + m_argv[0]);
+
+	/* Notice all irc ops with notice */
+	m_parent->getUsersDatabase().writeToIrcOp(m_reply.toString());
 }
 
 void irc::Request_handler::handle_AWAY(void) {
-	// TODO
+
+	/* Check state */
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
+
+		/* Abort command */
+		return;
+	}
+
+	/* Switch according arguments */
+	if (m_argc == 0) { /* Unset away message */
+
+		/* Set as non-away */
+		m_parent->setAway(false);
+
+		/* Notice user of non-away */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.RPL_UNAWAY();
+		m_parent->write(m_reply.toString());
+
+	} else { /* Set away message */
+
+		/* Set as away */
+		m_parent->setAway(true);
+
+		/* Set away message */
+		m_parent->setAwayMsg(m_argv[0]);
+
+		/* Notice user of non-away */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.RPL_NOWAWAY();
+		m_parent->write(m_reply.toString());
+	}
 }
 
 void irc::Request_handler::handle_REHASH(void) {
-	// TODO
+
+	/* Check state */
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check if user is irc op */
+	if (m_parent->isIrcOp() == false) {
+
+		/* No auth to do what */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOPRIVILEGES();
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Answer but do nothing (no configuration file used yet) */
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.RPL_REHASHING("dummy.conf");
+	m_parent->write(m_reply.toString());
 }
 
 void irc::Request_handler::handle_RESTART(void) {
+
+	/* Check state */
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check if user is irc op */
+	if (m_parent->isIrcOp() == false) {
+
+		/* No auth to do what */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOPRIVILEGES();
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* shutdown and restart server */
 	// TODO
 }
 
 void irc::Request_handler::handle_SUMMON(void) {
-	// TODO
+
+	/* Check state */
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
+
+		/* Abort command */
+		return;
+	}
+
+	/* No SUMMON support in this program */
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.ERR_SUMMONDISABLED();
+	m_parent->write(m_reply.toString());
 }
 
 void irc::Request_handler::handle_USERS(void) {
-	// TODO
+
+	/* Check state */
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
+
+		/* Abort command */
+		return;
+	}
+
+	/* No USERS support in this program */
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.ERR_USERSDISABLED();
+	m_parent->write(m_reply.toString());
 }
 
 void irc::Request_handler::handle_WALLOPS(void) {
-	// TODO
+
+	/* Check state */
+	if (m_parent->getState() != Connection::READY_FOR_MSG) {
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check arguments count */
+	if (m_argc != 1) {
+
+		/* Need more params */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NEEDMOREPARAMS("ERROR");
+		m_parent->write(m_reply.toString());
+
+		/* Abort command */
+		return;
+	}
+
+	/* Check if user is irc op */
+	if (m_parent->isIrcOp() == false) {
+
+		/* Abort command */
+		return;
+	}
+
+	/* Send message to all IRC ops connected */
+	m_reply.addPrefix(m_parent->getPrefix());
+	m_reply.CMD_WALLOPS(m_argv[0]);
+	m_parent->getUsersDatabase().writeToIrcOp(m_reply.toString());
 }
 
 void irc::Request_handler::handle_USERHOST(void) {
-	// TODO
+// TODO
 }
 
 void irc::Request_handler::handle_ISON(void) {
-	// TODO
+// TODO
+}
+
+void irc::Request_handler::send_welcome_msg(void) {
+
+	/* Send welcome message */
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.RPL_CUSTOM("001",
+			m_parent->getNickname() + " :Welcome to the "
+					+ m_parent->getServername() + " IRC network "
+					+ m_parent->getPrefix());
+	m_parent->write(m_reply.toString());
+	m_reply.flush();
+
+	/* Send server info message */
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.RPL_CUSTOM("002",
+			m_parent->getNickname() + " :our host is "
+					+ m_parent->getServername()
+					+ ", running version SkyIRC1.0");
+	m_parent->write(m_reply.toString());
+	m_reply.flush();
+	m_reply.addPrefix(m_parent->getServername());
+	m_reply.RPL_CUSTOM("003",
+			m_parent->getNickname() + " :This server was created "
+					+ boost::posix_time::to_simple_string(
+							m_parent->getConf().m_since));
+	m_parent->write(m_reply.toString());
+	m_reply.flush();
+
+	/* Stats section */
+	if (m_parent->getConf().send_stats) {
+
+		/* Send users stats */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.RPL_LUSERCLIENT(m_parent->getUsersDatabase().getUsersCount(),
+				m_parent->getUsersDatabase().getInvisibleUsersCount(), 1);
+		m_parent->write(m_reply.toString());
+		m_reply.flush();
+
+		/* Send irc ops stats */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.RPL_LUSEROP(m_parent->getUsersDatabase().getIRCopsCount());
+		m_parent->write(m_reply.toString());
+		m_reply.flush();
+
+		/* Send channels stats */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.RPL_LUSERCHANNELS(
+				m_parent->getChannelsDatabase().getChannelsCount());
+		m_parent->write(m_reply.toString());
+		m_reply.flush();
+
+		/* Send local users stats */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.RPL_LUSERME(m_parent->getUsersDatabase().getUsersCount(), 1);
+		m_parent->write(m_reply.toString());
+	}
+
+	/* MOTD section */
+	if (m_parent->getConf().send_motd) {
+
+		/* Send MOTD */
+		send_motd();
+
+	} else {
+
+		/* Send "no MOTD" message */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_NOMOTD();
+		m_parent->write(m_reply.toString());
+	}
+}
+
+void irc::Request_handler::send_motd(void) {
+
+	/* Open file */
+	std::ifstream motd_file(m_parent->getConf().motd_filename.c_str());
+
+	/* Test file open */
+	if (motd_file.is_open()) {
+
+		/* Temp string */
+		std::string line;
+
+		/* Send MOTD header*/
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.RPL_MOTDSTART(m_parent->getServername());
+		m_parent->write(m_reply.toString());
+		m_reply.flush();
+
+		/* For each text line of MOTD */
+		while (motd_file.good()) {
+
+			/* Get line from file */
+			std::getline(motd_file, line);
+
+			/* Send line */
+			m_reply.addPrefix(m_parent->getServername());
+			m_reply.RPL_MOTD(line);
+			m_parent->write(m_reply.toString());
+			m_reply.flush();
+		}
+
+		/* Send MOTD footer */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.RPL_ENDOFMOTD();
+		m_parent->write(m_reply.toString());
+
+		/* Close file */
+		motd_file.close();
+
+	} else { /* File open error */
+
+		/* Send file I/O error message */
+		m_reply.addPrefix(m_parent->getServername());
+		m_reply.ERR_FILEERROR("open", m_parent->getConf().motd_filename);
+		m_parent->write(m_reply.toString());
+	}
 }

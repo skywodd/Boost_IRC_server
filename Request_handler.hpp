@@ -80,6 +80,10 @@ protected:
 	void handle_USERHOST(void);
 	void handle_ISON(void);
 
+	/* ----- Special functions ----- */
+	void send_welcome_msg(void);
+	void send_motd(void);
+
 public:
 
 	/**
