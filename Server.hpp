@@ -36,7 +36,6 @@
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include "Users_manager.hpp"
 #include "Channels_manager.hpp"
 
@@ -71,9 +70,6 @@ protected:
 
 	/** Channels database */
 	Channels_manager m_channels_database;
-
-	/** Date/time of last run() call */
-	boost::posix_time::ptime m_since;
 
 	/**
 	 * Start an asynchronous accept operation

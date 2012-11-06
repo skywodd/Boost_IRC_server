@@ -30,12 +30,11 @@ irc::Server::Server(const std::string& address, const std::string& port,
 		const Configuration& configuration) :
 		m_io_service(), m_signals(m_io_service), m_acceptor(m_io_service), m_configuration(
 				configuration), m_users_database(m_configuration), m_channels_database(
-				m_configuration), m_since(
-				boost::posix_time::second_clock::local_time()) {
+				m_configuration) {
 
 	/* Creating server instance */
-	debug::DEBUG_LOG("Startup time",
-			boost::posix_time::to_iso_extended_string(m_since));
+	m_configuration.m_since = boost::posix_time::second_clock::local_time();
+	debug::DEBUG_LOG("Startup time", m_configuration.m_since);
 	debug::DEBUG_LOG(m_configuration.svdomain, "Creating server instance ...");
 
 	/* Register all signals that indicate when the server should exit */
@@ -149,10 +148,4 @@ void irc::Server::stop(void) {
 
 	/* Stop IO_service manager */
 	m_io_service.stop();
-}
-
-boost::posix_time::ptime irc::Server::runSince(void) const {
-
-	/* Return startup time */
-	return m_since;
 }
