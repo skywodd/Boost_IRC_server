@@ -95,9 +95,8 @@ public:
 	 * Add a new channel into the database
 	 *
 	 * @param name Name of the new channel
-	 * @param user Pointer to user informations about the creator of the channel
 	 */
-	void add(const std::string& name, boost::shared_ptr<Connection> user);
+	boost::shared_ptr<Channel_info> add(const std::string& name);
 
 	/**
 	 * Remove channel from the database

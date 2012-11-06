@@ -50,21 +50,25 @@ int irc::Channels_manager::getChannelsCountLimit(void) const {
 	return m_nb_channels_limit;
 }
 
-void irc::Channels_manager::add(const std::string& name,
-		boost::shared_ptr<Connection> user) {
+boost::shared_ptr<irc::Channel_info> irc::Channels_manager::add(
+		const std::string& name) {
 
 	/* Add a channel into the database */
 	debug::DEBUG_LOG("Add channel to the database", name);
-	m_database[name] = Channel_info::create(m_configuration);
-	m_database[name]->addJoin(user, true); /* Channel creator is always op */
+	boost::shared_ptr<Channel_info> new_chan = Channel_info::create(
+			m_configuration);
+	m_database[name] = new_chan;
 	++m_nb_channels; /* Update channels count */
+
+	/* Return freshly created channel */
+	return new_chan;
 }
 
 void irc::Channels_manager::remove(const std::string& name) {
 
 	/* Remove channel from database */
 	debug::DEBUG_LOG("Remove channel from database", name);
-	if(m_database.erase(name))
+	if (m_database.erase(name))
 		--m_nb_channels; /* Update channels count */
 }
 
@@ -76,8 +80,9 @@ boost::shared_ptr<irc::Channel_info> irc::Channels_manager::access(
 	index = m_database.find(name); /* search channel in database */
 
 	/* Check if channel exist or not */
-	if(index != m_database.end())
+	if (index != m_database.end())
 		return (*index).second; /* Channel exist, return channel informations */
-	else /* Channel don't exist, return null pointer */
+	else
+		/* Channel don't exist, return null pointer */
 		return boost::shared_ptr<irc::Channel_info>();
 }
