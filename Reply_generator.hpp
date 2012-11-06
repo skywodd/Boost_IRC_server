@@ -200,7 +200,7 @@ public:
 	void RPL_NOUSERS(void);
 	// RPL_STATSxxxx
 	void RPL_UMODEIS(const std::string& mode);
-	void RPL_LUSERCLIENT(const int users_count, const int users_invisible);
+	void RPL_LUSERCLIENT(const int users_count, const int users_invisible, const int servers_count);
 	void RPL_LUSEROP(const int op_cout);
 	void RPL_LUSERUNKNOWN(const int conn_count);
 	void RPL_LUSERCHANNELS(const int channels_count);
