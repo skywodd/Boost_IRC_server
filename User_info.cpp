@@ -28,9 +28,8 @@ irc::User_info::User_info(const Configuration& configuration) :
 				REQUESTING_INIT), m_is_ircop(configuration.is_ircop), m_is_receiving_wallops(
 				configuration.is_receiving_wallops), m_is_receiving_notices(
 				configuration.is_receiving_notices), m_is_invisible(
-				configuration.is_invisible), m_is_away(configuration.is_away), m_away_message(
-				configuration.away_message), m_nb_join(0), m_nb_join_limit(
-				configuration.nb_join_limit), m_channels_joined() {
+				configuration.is_invisible), m_is_away(configuration.is_away), m_away_message(), m_nb_join(
+				0), m_nb_join_limit(configuration.nb_join_limit), m_channels_joined() {
 
 	/* Generate a new anonymous nickname (used to track init process) */
 	m_nickname = generate_nickname();
