@@ -93,7 +93,6 @@ int main(int argc, char** argv) {
 
 
 /* - TO DO LIST -
- * TODO Make class to parse / generate prefix
  * TODO Check IRC dump to match IRC protocol
  * TODO Make class to check validiy of nickname / channel name
  *
