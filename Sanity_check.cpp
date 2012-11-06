@@ -18,6 +18,8 @@
 /* Includes */
 #include <boost/regex.hpp>
 #include "Sanity_check.hpp"
+// TODO Add include dependencies for regex
+// TODO escape backslash in regex !!
 
 bool irc::Sanity_check::is_valid_nickname(const std::string& input) {
 

@@ -200,6 +200,38 @@ public:
 	 */
 	long getIdleTime(void) const;
 
+	/**
+	 * Get the last PING arguments sended to client
+	 *
+	 * @return The last PING arguments sended to client
+	 */
+	const std::string& getLastPingArg(void) const;
+
+	/**
+	 * Get the configuration file pointer
+	 *
+	 * @return The configuration file pointer (read only)
+	 */
+	const Configuration& getConf(void) const;
+
+	/**
+	 * Get the users database pointer
+	 *
+	 * @return The users database pointer
+	 */
+	Users_manager& getUsersDatabase(void) const;
+
+	/**
+	 * Get the channels database pointer
+	 *
+	 * @return The channels database pointer
+	 */
+	Channels_manager& getChannelsDatabase(void) const;
+
+	/**
+	 * Restart the dead line timer
+	 */
+	void restartDeadlineTimer(void);
 };
 
 }

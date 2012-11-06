@@ -159,7 +159,7 @@ void irc::Request_handler::handle_PASS(void) {
 		if (m_argc == 1) {
 
 			/* Check password */
-			if (m_parent->m_configuration.server_password.count(m_argv[0])) {
+			if (m_parent->getConf().server_password.count(m_argv[0])) {
 
 				/* Password match */
 				m_parent->setState(Connection::WAIT_FOR_NICK);
@@ -188,7 +188,7 @@ void irc::Request_handler::handle_NICK(void) {
 		if (m_argc == 1 || m_argc == 2) {
 
 			/* Check if nickname already exist */
-			if (!m_parent->m_users_database.access(m_argv[0])) {
+			if (!m_parent->getUsersDatabase().access(m_argv[0])) {
 
 				/* Store nickname */
 				m_parent->setNickname(m_argv[0]);
@@ -274,8 +274,8 @@ void irc::Request_handler::handle_OPER(void) {
 
 			/* Check username */
 			std::map<std::string, std::string>::const_iterator ircop =
-					m_parent->m_configuration.server_ircop.find(m_argv[0]);
-			if (ircop != m_parent->m_configuration.server_ircop.end()) {
+					m_parent->getConf().server_ircop.find(m_argv[0]);
+			if (ircop != m_parent->getConf().server_ircop.end()) {
 
 				/* Check password */
 				if ((*ircop).second == m_argv[1]) {
@@ -328,7 +328,7 @@ void irc::Request_handler::handle_JOIN(void) {
 
 			/* Search channel */
 			boost::shared_ptr<Channel_info> channel =
-					m_parent->m_channels_database.access(m_argv[0]);
+					m_parent->getChannelsDatabase().access(m_argv[0]);
 
 			/* Check if channel exist */
 			if (channel) {
@@ -454,8 +454,8 @@ void irc::Request_handler::handle_JOIN(void) {
 			} else { /* Channel don't exist */
 
 				/* Add channel */
-				if (m_parent->m_channels_database.getChannelsCount()
-						== m_parent->m_channels_database.getChannelsCountLimit()) {
+				if (m_parent->getChannelsDatabase().getChannelsCount()
+						== m_parent->getChannelsDatabase().getChannelsCountLimit()) {
 
 					/* Limit reached */
 					m_reply.addPrefix(m_parent->getServername());
@@ -465,10 +465,10 @@ void irc::Request_handler::handle_JOIN(void) {
 				} else { /* Create channel */
 
 					m_reply.addPrefix(m_parent->getNickname());
-					m_parent->m_channels_database.add(m_argv[0],
+					m_parent->getChannelsDatabase().add(m_argv[0],
 							m_parent->shared_from_this());
 					m_parent->addJoin(
-							m_parent->m_channels_database.access(m_argv[0]));
+							m_parent->getChannelsDatabase().access(m_argv[0]));
 					m_reply.CMD_JOIN(m_argv[0], m_argv[1]);
 					m_parent->write(m_reply.toString());
 				}
@@ -491,7 +491,7 @@ void irc::Request_handler::handle_PART(void) {
 
 			/* Search channel */
 			boost::shared_ptr<Channel_info> channel =
-					m_parent->m_channels_database.access(m_argv[0]);
+					m_parent->getChannelsDatabase().access(m_argv[0]);
 
 			/* Check if channel exist */
 			if (channel) {
@@ -541,7 +541,7 @@ void irc::Request_handler::handle_TOPIC(void) {
 
 			/* Search channel */
 			boost::shared_ptr<Channel_info> channel =
-					m_parent->m_channels_database.access(m_argv[0]);
+					m_parent->getChannelsDatabase().access(m_argv[0]);
 
 			/* Check if channel exist */
 			if (channel) {
@@ -565,7 +565,7 @@ void irc::Request_handler::handle_TOPIC(void) {
 
 			/* Search channel */
 			boost::shared_ptr<Channel_info> channel =
-					m_parent->m_channels_database.access(m_argv[0]);
+					m_parent->getChannelsDatabase().access(m_argv[0]);
 
 			/* Check if channel exist */
 			if (channel) {
@@ -635,7 +635,7 @@ void irc::Request_handler::handle_KICK(void) {
 
 			/* Search channel */
 			boost::shared_ptr<Channel_info> channel =
-					m_parent->m_channels_database.access(m_argv[0]);
+					m_parent->getChannelsDatabase().access(m_argv[0]);
 
 			/* Check if channel exist */
 			if (channel) {
@@ -648,7 +648,7 @@ void irc::Request_handler::handle_KICK(void) {
 
 						/* Search user */
 						boost::shared_ptr<Connection> user =
-								m_parent->m_users_database.access(m_argv[1]);
+								m_parent->getUsersDatabase().access(m_argv[1]);
 
 						/* Check if user as join the channel */
 						if (user && user->asJoin(channel)) {
@@ -750,7 +750,7 @@ void irc::Request_handler::handle_NOTICE(void) {
 
 				/* Search user */
 				boost::shared_ptr<Connection> user =
-						m_parent->m_users_database.access(m_argv[0]);
+						m_parent->getUsersDatabase().access(m_argv[0]);
 
 				/* Check if user exist */
 				if (user) {
@@ -793,7 +793,7 @@ void irc::Request_handler::handle_PRIVMSG(void) {
 
 				/* Search channel */
 				boost::shared_ptr<Channel_info> channel =
-						m_parent->m_channels_database.access(m_argv[0]);
+						m_parent->getChannelsDatabase().access(m_argv[0]);
 
 				/* Check if channel exist */
 				if (channel) {
@@ -813,7 +813,7 @@ void irc::Request_handler::handle_PRIVMSG(void) {
 
 				/* Search user */
 				boost::shared_ptr<Connection> user =
-						m_parent->m_users_database.access(m_argv[0]);
+						m_parent->getUsersDatabase().access(m_argv[0]);
 
 				/* Check if user exist */
 				if (user) {
@@ -859,7 +859,7 @@ void irc::Request_handler::handle_KILL(void) {
 
 				/* Search user */
 				boost::shared_ptr<Connection> user =
-						m_parent->m_users_database.access(m_argv[0]);
+						m_parent->getUsersDatabase().access(m_argv[0]);
 
 				/* If user is found */
 				if (user) {
@@ -896,7 +896,7 @@ void irc::Request_handler::handle_PING(void) {
 	if (m_argc == 1) { /* Only target server is specified */
 
 		/* Check target server */
-		if (m_argv[0] == m_parent->m_servername) { /* Current server targeted */
+		if (m_argv[0] == m_parent->getServername()) { /* Current server targeted */
 			m_reply.CMD_PONG(m_argv[0]); /* Answer with PONG */
 
 		} else { /* Another server (no server to server communcation in this program) */
@@ -906,7 +906,7 @@ void irc::Request_handler::handle_PING(void) {
 	} else if (m_argc == 2) { /* Target server and deamon specified */
 
 		/* Check target server */
-		if (m_argv[0] == m_parent->m_servername) { /* Current server targeted */
+		if (m_argv[0] == m_parent->getServername()) { /* Current server targeted */
 			m_reply.CMD_PONG(m_argv[0], m_argv[1]); /* Answer with PONG */
 
 		} else { /* Another server (no server to server communcation in this program) */
@@ -929,21 +929,13 @@ void irc::Request_handler::handle_PONG(void) {
 	if (m_argc == 2) { /* PING target + deamon */
 
 		/* Check ping target */
-		if (m_argv[0] == m_parent->m_servername) { /* This server */
+		if (m_argv[0] == m_parent->getServername()) { /* This server */
 
 			/* Check ping deamon */
-			if (m_argv[1] == m_parent->m_ping_arg) {
+			if (m_argv[1] == m_parent->getLastPingArg()) {
 
 				/* Restart deadline timer */
-				debug::DEBUG_LOG(m_parent->m_nickname,
-						"Restarting deadline timer ...");
-				m_parent->m_dead_ping_timer.expires_from_now(
-						boost::posix_time::seconds(
-								m_parent->m_configuration.ping_timeout_delay));
-				m_parent->m_dead_ping_timer.async_wait(
-						boost::bind(&Connection::handle_ping_deadline,
-								m_parent->shared_from_this(),
-								boost::asio::placeholders::error));
+				m_parent->restartDeadlineTimer();
 
 			} else { /* PONG with unknwon deamon */
 				m_reply.ERR_NOORIGIN(); /* Ping error */
@@ -984,7 +976,7 @@ void irc::Request_handler::handle_ERROR(void) {
 								+ m_argv[0]);
 
 				/* Notice all irc ops with notice */
-				m_parent->m_users_database.writeToIrcOp(m_reply.toString());
+				m_parent->getUsersDatabase().writeToIrcOp(m_reply.toString());
 
 			} else { /* No auth to do what */
 				m_reply.ERR_NOPRIVILEGES();

@@ -250,5 +250,34 @@ void irc::Connection::updateIdleTime(void) {
 long irc::Connection::getIdleTime(void) const {
 
 	/* Compute the number of seconds elapsed between the last msg of user and now */
-	return boost::posix_time::second_clock::local_time() - m_idle_time;
+	return (boost::posix_time::second_clock::local_time() - m_idle_time).seconds();
+}
+
+const std::string& irc::Connection::getLastPingArg(void) const {
+
+	/* Set the last PING argument */
+	return m_ping_arg;
+}
+
+const irc::Configuration& irc::Connection::getConf(void) const {
+	return m_configuration;
+}
+
+irc::Users_manager& irc::Connection::getUsersDatabase(void) const {
+	return m_users_database;
+}
+
+irc::Channels_manager& irc::Connection::getChannelsDatabase(void) const {
+	return m_channels_database;
+}
+
+void irc::Connection::restartDeadlineTimer(void) {
+
+	/* Restart deadline timer */
+	debug::DEBUG_LOG(m_nickname, "Restart deadline timer ...");
+	m_dead_ping_timer.expires_from_now(
+			boost::posix_time::seconds(m_configuration.ping_timeout_delay));
+	m_dead_ping_timer.async_wait(
+			boost::bind(&Connection::handle_ping_deadline, shared_from_this(),
+					boost::asio::placeholders::error));
 }
