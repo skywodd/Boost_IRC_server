@@ -20,6 +20,7 @@
 #include "User_info.hpp"
 #include "Configuration.hpp"
 #include "Channel_info.hpp"
+#include "Prefix_wrapper.hpp"
 #include "Debug_log.hpp"
 
 irc::User_info::User_info(const Configuration& configuration) :
@@ -74,7 +75,10 @@ void irc::User_info::setNickname(const std::string& nickname) {
 	/* Set the nickname of the user */
 	debug::DEBUG_LOG(m_nickname, "Nickname", nickname);
 	m_nickname = nickname;
-	// TODO update prefix
+
+	/* Update prefix */
+	Prefix_generator pgen(m_nickname, m_username, m_hostname);
+	m_prefix = pgen.toString();
 }
 
 const std::string& irc::User_info::getUsername(void) const {
@@ -88,7 +92,10 @@ void irc::User_info::setUsername(const std::string& username) {
 	/* Set the username of the user */
 	debug::DEBUG_LOG(m_nickname, "Username", username);
 	m_username = username;
-	// TODO update prefix
+
+	/* Update prefix */
+	Prefix_generator pgen(m_nickname, m_username, m_hostname);
+	m_prefix = pgen.toString();
 }
 
 const std::string& irc::User_info::getHostname(void) const {
