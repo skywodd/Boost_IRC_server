@@ -92,7 +92,7 @@ public:
 	 * @param port Port to listen on
 	 * @param configuration Server configuration to use
 	 */
-	explicit Server(const std::string& address, const std::string& port, const Configuration& configuration);
+	explicit Server(const std::string& address, const std::string& port, Configuration& configuration);
 
 	/**
 	 * Destructor
