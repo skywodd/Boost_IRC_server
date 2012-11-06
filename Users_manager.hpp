@@ -110,6 +110,20 @@ public:
 	int getUsersCount(void) const;
 
 	/**
+	 * Get the number of invisible users in the database
+	 *
+	 * @return The number of invisible users in the database
+	 */
+	int getInvisibleUsersCount(void) const;
+
+	/**
+	 * Get the number of IRC ops in the database
+	 *
+	 * @return The number of IRC ops in the database
+	 */
+	int getIRCopsCount(void) const;
+
+	/**
 	 * Get the maximum number of users of the database
 	 *
 	 * @return The maximum number of users of the database

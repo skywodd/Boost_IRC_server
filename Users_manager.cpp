@@ -34,18 +34,20 @@ void irc::Users_manager::send_wallops(boost::shared_ptr<Connection> user,
 		std::string& message) {
 
 	/* If user is ready for msg, is receiving wallops and is an IRC op */
-		if ((user->getState() == Connection::READY_FOR_MSG) && user->isReceivingWallops() && user->isIrcOp())
-			/* Send message to the user */
-			user->write(message);
+	if ((user->getState() == Connection::READY_FOR_MSG)
+			&& user->isReceivingWallops() && user->isIrcOp())
+		/* Send message to the user */
+		user->write(message);
 }
 
 void irc::Users_manager::send_notice(boost::shared_ptr<Connection> user,
 		std::string& message) {
 
 	/* If user is ready for msg and is receiving notices */
-		if ((user->getState() == Connection::READY_FOR_MSG) && user->isReceivingNotices())
-			/* Send message to the user */
-			user->write(message);
+	if ((user->getState() == Connection::READY_FOR_MSG)
+			&& user->isReceivingNotices())
+		/* Send message to the user */
+		user->write(message);
 }
 
 irc::Users_manager::Users_manager(const Configuration& configuration) :
@@ -70,6 +72,44 @@ int irc::Users_manager::getUsersCount(void) const {
 	return m_nb_users;
 }
 
+int irc::Users_manager::getInvisibleUsersCount(void) const {
+
+	/* Count result */
+	int nb_users = 0;
+
+	/* Test each users */
+	std::set<boost::shared_ptr<Connection> >::iterator i = m_database.begin();
+	std::set<boost::shared_ptr<Connection> >::iterator end;
+	for (; i != end; ++i) {
+
+		/* Check user status */
+		if ((*i)->isInvisible())
+			++nb_users;
+	}
+
+	/* Return result */
+	return nb_users;
+}
+
+int irc::Users_manager::getIRCopsCount(void) const {
+
+	/* Count result */
+	int nb_users = 0;
+
+	/* Test each users */
+	std::set<boost::shared_ptr<Connection> >::iterator i = m_database.begin();
+	std::set<boost::shared_ptr<Connection> >::iterator end;
+	for (; i != end; ++i) {
+
+		/* Check user status */
+		if ((*i)->isIrcOp())
+			++nb_users;
+	}
+
+	/* Return result */
+	return nb_users;
+}
+
 int irc::Users_manager::getUsersCountLimit(void) const {
 
 	/* Return the maxmimum numbers of users of the database */
@@ -80,7 +120,7 @@ void irc::Users_manager::add(boost::shared_ptr<Connection> user) {
 
 	/* Add an user to the database */
 	debug::DEBUG_LOG("Users database", "add user", user->getNickname());
-	if(m_database.insert(user).second) /* Check for error */
+	if (m_database.insert(user).second) /* Check for error */
 		++m_nb_users; /* Update users count */
 }
 
@@ -88,7 +128,7 @@ void irc::Users_manager::remove(boost::shared_ptr<Connection> user) {
 
 	/* Remove an user from the database */
 	debug::DEBUG_LOG("Users database", "remove user", user->getNickname());
-	if(m_database.erase(user))/* Check for error */
+	if (m_database.erase(user))/* Check for error */
 		--m_nb_users; /* Update users count */
 }
 
@@ -106,7 +146,8 @@ boost::shared_ptr<irc::Connection> irc::Users_manager::access(
 	/* Check if user have been found or not */
 	if (result != m_database.end())
 		return *result; /* User found, return pointer to it */
-	else /* User not found, return null pointer */
+	else
+		/* User not found, return null pointer */
 		return boost::shared_ptr<irc::Connection>();
 }
 
