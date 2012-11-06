@@ -100,9 +100,6 @@ struct Configuration {
 	/** True if the user is away by default */
 	bool is_away;
 
-	/** Default away message */
-	std::string away_message;
-
 	/* ----- Channel info ----- */
 	/** Maximum number of users on the channel by default */
 	int users_limit_per_channel;

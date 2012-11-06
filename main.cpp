@@ -71,7 +71,6 @@ int main(int argc, char** argv) {
 		configuration.is_receiving_notices = true;
 		configuration.is_invisible = false;
 		configuration.is_away = false;
-		configuration.away_message = "I'm AFK";
 		configuration.users_limit_per_channel = 10;
 		configuration.is_private = false;
 		configuration.is_secret = false;
