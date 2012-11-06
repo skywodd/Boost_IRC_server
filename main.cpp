@@ -90,11 +90,3 @@ int main(int argc, char** argv) {
 	/* Exit without error */
 	return 0;
 }
-
-
-/* - TO DO LIST -
- * TODO Check IRC dump to match IRC protocol
- * TODO Make class to check validiy of nickname / channel name
- *
- *
- */
