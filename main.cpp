@@ -58,6 +58,9 @@ int main(int argc, char** argv) {
 		configuration.svdomain = "irc.local";
 		configuration.is_password_protected = false;
 		configuration.server_ircop["root"] = "toor";
+		configuration.send_motd = true;
+		configuration.send_stats = true;
+		configuration.motd_filename = "motd.txt";
 		configuration.ping_refresh_delay = 60;
 		configuration.ping_timeout_delay = 120;
 		configuration.nb_users_limit = 100;

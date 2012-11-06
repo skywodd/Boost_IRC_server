@@ -33,6 +33,7 @@
 #include <string>
 #include <set>
 #include <map>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 /**
  * @namespace irc
@@ -55,6 +56,15 @@ struct Configuration {
 
 	/** IRC op user / password */
 	std::map<std::string, std::string> server_ircop;
+
+	/** Send MOTD after connection */
+	bool send_motd;
+
+	/** Send stats after connection */
+	bool send_stats;
+
+	/** MOTD file path */
+	std::string motd_filename;
 
 	/* ----- Connection ----- */
 	/** Delay between two ping request in seconds */
@@ -116,7 +126,8 @@ struct Configuration {
 	bool is_moderated;
 
 	/* ----- Others ----- */
-
+	/** Date/time of server startup */
+	boost::posix_time::ptime m_since;
 };
 
 }
