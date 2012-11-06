@@ -18,14 +18,12 @@
 /* Includes */
 #include <boost/regex.hpp>
 #include "Sanity_check.hpp"
-// TODO Add include dependencies for regex
-// TODO escape backslash in regex !!
 
 bool irc::Sanity_check::is_valid_nickname(const std::string& input) {
 
 	/* Compile regular expression */
 	boost::regex expression(
-			"^[a-z_\-\[\]\\^{}|`][a-z0-9_\-\[\]\\^{}|`]{0, 15}$");
+			"^[a-z_\\-\\[\\]\\\\^{}|`][a-z0-9_\\-\\[\\]\\\\^{}|`]{0, 15}$");
 	// Allow : 1 to 16 chr nickname
 
 	/* Match the input with the regex */
@@ -35,7 +33,7 @@ bool irc::Sanity_check::is_valid_nickname(const std::string& input) {
 bool irc::Sanity_check::is_valid_channame(const std::string& input) {
 
 	/* Compile regular expression */
-	boost::regex expression("^([#&][^\x07\x2C\s]{0, 199})$");
+	boost::regex expression("^([#&][^\r\n\0]{0, 199})$");
 	// Allow : 1 to 200 chr channel name
 
 	/* Match the input with the regex */
@@ -47,7 +45,7 @@ bool irc::Sanity_check::is_valid_hostname(const std::string& input) {
 
 	/* Compile regular expression */
 	boost::regex expression(
-			"^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$");
+			"^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$");
 
 	/* Match the input with the regex */
 	return regex_match(input, expression);
