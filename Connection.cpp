@@ -26,46 +26,55 @@
 #include "Request_handler.hpp"
 #include "Reply_generator.hpp"
 #include "Debug_log.hpp"
+#include "Server.hpp"
 
-irc::Connection::Connection(boost::asio::io_service& io_service,
-		Users_manager& users_database, Channels_manager& channels_database,
-		const Configuration& configuration) :
-		User_info(configuration), m_configuration(configuration), m_cycle_ping_timer(
+irc::Connection::Connection(boost::asio::io_service& io_service) :
+		User_info(), m_cycle_ping_timer(io_service,
+				boost::posix_time::seconds(
+						Server::getInstance()->getConfiguration().ping_refresh_delay)), m_dead_ping_timer(
 				io_service,
-				boost::posix_time::seconds(configuration.ping_refresh_delay)), m_dead_ping_timer(
-				io_service,
-				boost::posix_time::seconds(configuration.ping_timeout_delay)), m_socket(
-				io_service), m_buffer(), m_users_database(users_database), m_channels_database(
-				channels_database), m_idle_time(
+				boost::posix_time::seconds(
+						Server::getInstance()->getConfiguration().ping_timeout_delay)), m_socket(
+				io_service), m_buffer(), m_idle_time(
 				boost::posix_time::second_clock::local_time()), m_ping_arg(), m_handler(
 				this) {
 
-	/* Instanciate new user */
+	/* Instantiate new user */
 	debug::DEBUG_LOG(m_nickname, "Instantiate a new Connection object ...");
 	debug::DEBUG_LOG(m_nickname, "Ping check (seconds)",
-			configuration.ping_refresh_delay);
+			Server::getInstance()->getConfiguration().ping_refresh_delay);
 	debug::DEBUG_LOG(m_nickname, "Ping timeout (seconds)",
-			configuration.ping_timeout_delay);
+			Server::getInstance()->getConfiguration().ping_timeout_delay);
 
 	/* No server-to-server communication in this program */
-	m_servername = configuration.svdomain;
+	m_servername = Server::getInstance()->getConfiguration().svdomain;
 }
 
 boost::shared_ptr<irc::Connection> irc::Connection::create(
-		boost::asio::io_service& io_service, Users_manager& users_database,
-		Channels_manager& channels_database,
-		const Configuration& configuration) {
+		boost::asio::io_service& io_service) {
 
 	/* Create a new Connection shared_ptr */
-	return boost::shared_ptr<irc::Connection>(
-			new Connection(io_service, users_database, channels_database,
-					configuration));
+	return boost::shared_ptr<irc::Connection>(new Connection(io_service));
 }
 
 irc::Connection::~Connection(void) {
 
 	/* Destroy connection object */
 	debug::DEBUG_LOG(m_nickname, "Destroying connection ...");
+}
+
+void irc::Connection::quit_channel(boost::shared_ptr<Connection> user,
+		boost::shared_ptr<Channel_info> channel) {
+
+	/* QUIT channel */
+	channel->removeJoin(user);
+
+	/* Check if channel is empty */
+	if (channel->getUsersCount() == 0) {
+
+		/* Remove channel from database */
+		Server::getInstance()->getChannelsDatabase().remove(channel);
+	}
 }
 
 void irc::Connection::handle_read(const boost::system::error_code& error,
@@ -91,7 +100,7 @@ void irc::Connection::handle_read(const boost::system::error_code& error,
 		debug::DEBUG_LOG(m_nickname,
 				"Error during process of read operation !");
 
-		/* Clean database and notice other users */
+		/* Close the connection */
 		close_because("Connection reset by peer");
 	}
 }
@@ -100,7 +109,8 @@ void irc::Connection::handle_write(const boost::system::error_code& error) {
 
 	/* Check for error */
 	if (!error) {
-		debug::DEBUG_LOG(m_nickname, "Procesing write operation ...");
+
+		debug::DEBUG_LOG(m_nickname, "Processing write operation ...");
 	}
 }
 
@@ -111,17 +121,18 @@ void irc::Connection::handle_ping_refresh(
 	if (!error) {
 		debug::DEBUG_LOG(m_nickname, "Sending ping request ...");
 
-		/* Send ping request */
+		/* Send the ping request */
 		Reply_generator reply;
 		m_ping_arg = Reply_generator::generate_seed();
 		reply.addPrefix(m_servername);
 		reply.CMD_PING(m_servername, m_ping_arg);
 		write(reply.toString());
 
-		/* Restart ping timer */
+		/* Restart the ping timer */
 		debug::DEBUG_LOG(m_nickname, "Restart ping timer ...");
 		m_cycle_ping_timer.expires_from_now(
-				boost::posix_time::seconds(m_configuration.ping_refresh_delay));
+				boost::posix_time::seconds(
+						Server::getInstance()->getConfiguration().ping_refresh_delay));
 		m_cycle_ping_timer.async_wait(
 				boost::bind(&Connection::handle_ping_refresh,
 						shared_from_this(), boost::asio::placeholders::error));
@@ -135,7 +146,7 @@ void irc::Connection::handle_ping_deadline(
 	/* Check for error */
 	if (!error) {
 
-		/* Close connection */
+		/* Close the connection */
 		close_because("Ping timeout");
 	}
 }
@@ -154,32 +165,34 @@ boost::asio::streambuf& irc::Connection::getBuffer(void) {
 
 void irc::Connection::start(void) {
 
-	/* Resolving remote domain name */
+	/* Resolve remote domain name */
 	debug::DEBUG_LOG(m_nickname, "Resolving remote domain name ...");
 	boost::asio::ip::tcp::endpoint remote_ep = m_socket.remote_endpoint();
 	boost::asio::ip::address remote_ad = remote_ep.address();
 	m_hostname = remote_ad.to_string();
 	debug::DEBUG_LOG(m_nickname, "Remote domain", m_hostname);
 
-	/* Starting connection */
+	/* Start the connection */
 	debug::DEBUG_LOG(m_nickname, "Starting connection ...");
 	boost::asio::async_read_until(m_socket, m_buffer, "\r\n",
 			boost::bind(&Connection::handle_read, shared_from_this(),
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred));
 
-	/* Start ping timer */
+	/* Start the ping timer */
 	debug::DEBUG_LOG(m_nickname, "Start ping timer ...");
 	m_cycle_ping_timer.expires_from_now(
-			boost::posix_time::seconds(m_configuration.ping_refresh_delay));
+			boost::posix_time::seconds(
+					Server::getInstance()->getConfiguration().ping_refresh_delay));
 	m_cycle_ping_timer.async_wait(
 			boost::bind(&Connection::handle_ping_refresh, shared_from_this(),
 					boost::asio::placeholders::error));
 
-	/* Start deadline timer */
+	/* Start the deadline timer */
 	debug::DEBUG_LOG(m_nickname, "Start deadline timer ...");
 	m_dead_ping_timer.expires_from_now(
-			boost::posix_time::seconds(m_configuration.ping_timeout_delay));
+			boost::posix_time::seconds(
+					Server::getInstance()->getConfiguration().ping_timeout_delay));
 	m_dead_ping_timer.async_wait(
 			boost::bind(&Connection::handle_ping_deadline, shared_from_this(),
 					boost::asio::placeholders::error));
@@ -187,7 +200,7 @@ void irc::Connection::start(void) {
 
 void irc::Connection::write(const std::string& buffer) {
 
-	/* Send message */
+	/* Send the message */
 	debug::DEBUG_LOG(m_nickname, "[RAW OUT]", buffer);
 	boost::asio::async_write(m_socket, boost::asio::buffer(buffer),
 			boost::bind(&Connection::handle_write, shared_from_this(),
@@ -197,18 +210,18 @@ void irc::Connection::write(const std::string& buffer) {
 
 void irc::Connection::writeToChannels(const std::string& buffer) {
 
-	/* Send message to all joined channel */
+	/* Send the message to all joined channels */
 	std::for_each(m_channels_joined.begin(), m_channels_joined.end(),
 			boost::bind(&Channel_info::writeToAll, _1, buffer));
 }
 
 void irc::Connection::close(void) {
 
-	/* Cancel ping timers */
+	/* Cancel the ping timer */
 	m_cycle_ping_timer.cancel();
 	m_dead_ping_timer.cancel();
 
-	/* Closing connection */
+	/* Close the connection */
 	debug::DEBUG_LOG(m_nickname, "Closing socket ...");
 	boost::system::error_code ignored_ec;
 	m_socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
@@ -217,33 +230,33 @@ void irc::Connection::close(void) {
 
 void irc::Connection::close_because(const std::string& reason) {
 
-	/* Clean database and close socket */
+	/* Clean the database and close the socket */
 	if (!m_socket.is_open())
 		return;
 	debug::DEBUG_LOG(m_nickname, "Closing connection", reason);
 
-	/* Craft QUIT reply */
+	/* Craft the QUIT reply */
 	Reply_generator reply;
 	reply.addPrefix(m_nickname);
 	reply.CMD_QUIT(reason);
 
-	/* Send reply to all joined channels */
+	/* Send the reply to all joined channels */
 	writeToChannels(reply.toString());
 
 	/* Quit all joined channels */
 	std::for_each(m_channels_joined.begin(), m_channels_joined.end(),
-			boost::bind(&Channel_info::removeJoin, _1, shared_from_this()));
+			boost::bind(&Connection::quit_channel, shared_from_this(), _1));
 
-	/* Remove itself from database */
-	m_users_database.remove(shared_from_this());
+	/* Remove itself from the database */
+	Server::getInstance()->getUsersDatabase().remove(shared_from_this());
 
-	/* Close socket */
+	/* Close the socket */
 	close();
 }
 
 void irc::Connection::updateIdleTime(void) {
 
-	/* Reset the last msg timestamp to now */
+	/* Reset the last message time stamp to now */
 	m_idle_time = boost::posix_time::second_clock::local_time();
 }
 
@@ -259,24 +272,13 @@ const std::string& irc::Connection::getLastPingArg(void) const {
 	return m_ping_arg;
 }
 
-const irc::Configuration& irc::Connection::getConf(void) const {
-	return m_configuration;
-}
-
-irc::Users_manager& irc::Connection::getUsersDatabase(void) const {
-	return m_users_database;
-}
-
-irc::Channels_manager& irc::Connection::getChannelsDatabase(void) const {
-	return m_channels_database;
-}
-
 void irc::Connection::restartDeadlineTimer(void) {
 
 	/* Restart deadline timer */
 	debug::DEBUG_LOG(m_nickname, "Restart deadline timer ...");
 	m_dead_ping_timer.expires_from_now(
-			boost::posix_time::seconds(m_configuration.ping_timeout_delay));
+			boost::posix_time::seconds(
+					Server::getInstance()->getConfiguration().ping_timeout_delay));
 	m_dead_ping_timer.async_wait(
 			boost::bind(&Connection::handle_ping_deadline, shared_from_this(),
 					boost::asio::placeholders::error));

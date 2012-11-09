@@ -5,13 +5,9 @@
  * @version 1.0
  * @see http://skyduino.wordpress.com/
  *
- * @section intro_sec Introduction
- * This class is designed to handle TCP connection (read, write, ...).\n
- * Relation with other class are made using shared_ptr wrapper.\n
- * \n
  * Please report bug to <skywodd at gmail.com>
  *
- * @section licence_sec Licence
+ * @section licence_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
  *  the Free Software Foundation, either version 3 of the License, or\n
@@ -42,23 +38,23 @@
 
 /**
  * @namespace irc
+ *
+ * Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
-/* Forward declaration */
-class Configuration;
-class Users_manager;
-class Channels_manager;
-
 /**
  * @class Connection
+ *
+ * This class is designed to handle all READ / WRITE operations of user.\n
+ * This class also handle ping timeout, IDLE time, channels broadcast and socket closing.\n
+ * \n
+ * All read / write operations are made using asynchronous functions from Boost.\n
+ * The IRC request parser is called when a \\r\\n footprint is received.
  */
 class Connection: public boost::enable_shared_from_this<Connection>,
 		public User_info {
 protected:
-	/** Server configuration */
-	const Configuration& m_configuration;
-
 	/** Timer for refreshing ping status */
 	boost::asio::deadline_timer m_cycle_ping_timer;
 
@@ -68,28 +64,30 @@ protected:
 	/** Socket for the connection */
 	boost::asio::ip::tcp::socket m_socket;
 
-	/** Stream buffer for incoming data */
+	/** Stream buffer for storing incoming data */
 	boost::asio::streambuf m_buffer;
 
-	/** Users database pointer */
-	Users_manager& m_users_database;
-
-	/** Channels database pointer */
-	Channels_manager& m_channels_database;
-
-	/** Idle time */
+	/** Idle time in posix time */
 	boost::posix_time::ptime m_idle_time;
 
-	/** Last ping argument */
+	/** Last ping seed arguments */
 	std::string m_ping_arg;
 
-	/** Request handler */
+	/** Request handler object */
 	Request_handler m_handler;
+
+	/**
+	 * Functor : Handle QUIT of a channel (with channel deletion if necessary)
+	 *
+	 * @param user Pointer to the user who quit
+	 * @param channel Pointer to the channel to quit cleanly
+	 */
+	static void quit_channel(boost::shared_ptr<Connection> user, boost::shared_ptr<Channel_info> channel);
 
 	/**
 	 * Handle completion of a read operation
 	 *
-	 * @param error Error code
+	 * @param error Error code (if any)
 	 * @param bytes_transferred Number of bytes written to the buffer
 	 */
 	void handle_read(const boost::system::error_code& error,
@@ -98,49 +96,39 @@ protected:
 	/**
 	 * Handle completion of a write operation
 	 *
-	 * @param error Error code
+	 * @param error Error code (if any)
 	 */
 	void handle_write(const boost::system::error_code& error);
 
 	/**
-	 * Handle ping refresh timer
+	 * Handle ping refresh
 	 *
-	 * @param error Error code
+	 * @param error Error code (if any)
 	 */
 	void handle_ping_refresh(const boost::system::error_code& error);
 
 	/**
-	 * Handle ping deadline timer
+	 * Handle ping deadline
 	 *
-	 * @param error Error code
+	 * @param error Error code (if any)
 	 */
 	void handle_ping_deadline(const boost::system::error_code& error);
 
 	/**
-	 * Instanciate a new connection
+	 * Instantiate a new connection
 	 *
 	 * @param io_service IO_service to use for callback management
-	 * @param users_database Pointer to the users database
-	 * @param channels_database Pointer to the channels database
-	 * @param configuration Default connection configuration
 	 */
-	explicit Connection(boost::asio::io_service& io_service,
-			Users_manager& users_database, Channels_manager& channels_database,
-			const Configuration& configuration);
+	explicit Connection(boost::asio::io_service& io_service);
 
 public:
 	/**
-	 * Instanciate a new connection
+	 * Instantiate a new connection
 	 *
 	 * @param io_service IO_service to use for callback management
-	 * @param users_database Pointer to the users database
-	 * @param channels_database Pointer to the channels database
-	 * @param configuration Default connection configuration
 	 */
 	static boost::shared_ptr<Connection> create(
-			boost::asio::io_service& io_service, Users_manager& users_database,
-			Channels_manager& channels_database,
-			const Configuration& configuration);
+			boost::asio::io_service& io_service);
 
 	/**
 	 * Destructor
@@ -151,11 +139,15 @@ public:
 
 	/**
 	 * Get the socket associated with the connection
+	 *
+	 * @return The socket associated with the connection
 	 */
 	boost::asio::ip::tcp::socket& socket(void);
 
 	/**
-	 * Get the buffer associated with the connection
+	 * Get the stream buffer associated with the connection
+	 *
+	 * @return The stream buffer associated with the connection
 	 */
 	boost::asio::streambuf& getBuffer(void);
 
@@ -184,7 +176,9 @@ public:
 	void close(void);
 
 	/**
-	 * Close the connection and clean user database
+	 * Close the connection and clean the user database
+	 *
+	 * @param reason Reason of the close
 	 */
 	void close_because(const std::string& reason);
 
@@ -201,39 +195,19 @@ public:
 	long getIdleTime(void) const;
 
 	/**
-	 * Get the last PING arguments sended to client
+	 * Get the last PING arguments sent to the client
 	 *
-	 * @return The last PING arguments sended to client
+	 * @return The last PING arguments sent to the client
 	 */
 	const std::string& getLastPingArg(void) const;
-
-	/**
-	 * Get the configuration file pointer
-	 *
-	 * @return The configuration file pointer (read only)
-	 */
-	const Configuration& getConf(void) const;
-
-	/**
-	 * Get the users database pointer
-	 *
-	 * @return The users database pointer
-	 */
-	Users_manager& getUsersDatabase(void) const;
-
-	/**
-	 * Get the channels database pointer
-	 *
-	 * @return The channels database pointer
-	 */
-	Channels_manager& getChannelsDatabase(void) const;
 
 	/**
 	 * Restart the dead line timer
 	 */
 	void restartDeadlineTimer(void);
+
 };
 
-}
+} /* namespace irc */
 
 #endif /* CONNECTION_H_ */
