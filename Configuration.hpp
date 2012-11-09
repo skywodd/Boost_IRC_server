@@ -114,7 +114,7 @@ struct Configuration {
 	/** True if the channel is on invitation only by default */
 	bool is_invite_only;
 
-	/** True if the topic can be set by op only by default */
+	/** True if the topic can be set by ops only by default */
 	bool topic_setby_op_only;
 
 	/** True if messages outside from the channel cannot be sent by default */
