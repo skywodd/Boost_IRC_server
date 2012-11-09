@@ -1,16 +1,13 @@
 /**
  * @file Request_parser.hpp
- * @brief IRC request parser
+ * @brief IRC requests parser
  * @author SkyWodd
  * @version 1.0
  * @see http://skyduino.wordpress.com/
  *
- * @section intro_sec Introduction
- * This class is designed to parse IRC request.\n
- * \n
  * Please report bug to <skywodd at gmail.com>
  *
- * @section licence_sec Licence
+ * @section licence_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
  *  the Free Software Foundation, either version 3 of the License, or\n
@@ -35,11 +32,16 @@
 
 /**
  * @namespace irc
+ *
+ * Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
 /**
  * @class Arguments_Parser
+ *
+ * This class is designed to parse IRC arguments list.\n
+ * This class take a string as input, split it using ',' as separator and return a list of string.
  */
 class Arguments_Parser {
 protected:
@@ -51,7 +53,7 @@ protected:
 
 public:
 	/**
-	 * Instantiate and parse input string to retrieve arguments
+	 * Instantiate a new parser and process the input string
 	 */
 	Arguments_Parser(const std::string& raw_input);
 
@@ -63,9 +65,9 @@ public:
 	virtual ~Arguments_Parser();
 
 	/**
-	 * Get the list of argumens
+	 * Get the list of arguments
 	 *
-	 * @return The list of argumens
+	 * @return The list of arguments
 	 */
 	const std::vector<std::string>& getArguments(void) const;
 
@@ -79,10 +81,13 @@ public:
 
 /**
  * @class Request_parser
+ *
+ * This class is designed to parse IRC request.\n
+ * The parser handle request with or without prefix, single command or erroneous request.
  */
 class Request_parser {
 protected:
-	/** Command prefix header */
+	/** Prefix header */
 	std::string m_prefix;
 
 	/** True if request has prefix header, false otherwise */
@@ -91,7 +96,7 @@ protected:
 	/** IRC command */
 	std::string m_command;
 
-	/** IRC arguments list */
+	/** IRC arguments list (space as separator) */
 	std::vector<std::string> m_arguments;
 
 	/** Number of arguments */
@@ -102,9 +107,10 @@ protected:
 
 public:
 	/**
-	 * Instantiate a new IRC request parser
+	 * Instantiate a new IRC request parser and grab a line from input stream buffer
 	 *
-	 * @param buffer Input stream buffer from socket read
+	 * @remarks Line grabbed from the buffer will be removed from the stream.
+	 * @param buffer Input stream buffer from raw line read
 	 */
 	Request_parser(boost::asio::streambuf& buffer);
 
@@ -116,9 +122,9 @@ public:
 	virtual ~Request_parser();
 
 	/**
-	 * Parse input stream and decode IRC command (if any)
+	 * Parse input request line and decode IRC command (if any)
 	 *
-	 * @return True if parsing success, false otherwise
+	 * @return True if parsing is successfully, false otherwise
 	 */
 	bool parse(void);
 
@@ -130,9 +136,9 @@ public:
 	const std::string& getPrefix(void) const;
 
 	/**
-	 * Check if command has prefix header or not
+	 * Check if the command has a prefix header
 	 *
-	 * @return True if command has prefix, false otherwise
+	 * @return True if the command has a prefix header, false otherwise
 	 */
 	bool hasPrefix(void) const;
 
@@ -163,8 +169,9 @@ public:
 	 * @return The raw request line
 	 */
 	const std::string& getRaw(void) const;
+
 };
 
-}
+} /* namespace irc */
 
 #endif /* REQUESTPARSER_H_ */

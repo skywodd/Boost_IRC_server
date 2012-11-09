@@ -24,16 +24,16 @@
 irc::Arguments_Parser::Arguments_Parser(const std::string& raw_input) :
 		m_arguments(), m_nb_arguments(0) {
 
-	/* Create input stream */
+	/* Create an input string stream */
 	std::istringstream iss(raw_input);
 	std::string tmp;
 
-	/* Get all arguments */
+	/* Get all arguments using ',' as separator */
 	while (std::getline(iss, tmp, ',')) {
 
-		/* Add to arguments list */
+		/* Add string to the arguments list */
 		m_arguments.push_back(tmp);
-		++m_nb_arguments;
+		++m_nb_arguments; /* Update arguments count */
 	}
 }
 
@@ -43,13 +43,13 @@ irc::Arguments_Parser::~Arguments_Parser() {
 const std::vector<std::string>& irc::Arguments_Parser::getArguments(
 		void) const {
 
-	/* Return the list of arguments of the command */
+	/* Return the list of arguments */
 	return m_arguments;
 }
 
 int irc::Arguments_Parser::getArgumentsCount(void) const {
 
-	/* Return the number of arguments of the command */
+	/* Return the number of arguments */
 	return m_nb_arguments;
 }
 
@@ -57,11 +57,11 @@ irc::Request_parser::Request_parser(boost::asio::streambuf& buffer) :
 		m_prefix(), m_has_prefix(false), m_command(), m_arguments(), m_nb_arguments(
 				0) {
 
-	/* Get raw line */
+	/* Get the raw request line */
 	std::istream is(&buffer);
 	std::getline(is, m_line, '\n');
 
-	/* Erase \r at end of string */
+	/* Erase the \r at the end of the string */
 	m_line.erase(m_line.size() - 1, 1);
 }
 
@@ -70,10 +70,7 @@ irc::Request_parser::~Request_parser() {
 
 bool irc::Request_parser::parse(void) {
 
-	/* Parse request */
-	debug::DEBUG_LOG("Parsing request ...");
-
-	/* Create input stream */
+	/* Create an input string stream */
 	std::istringstream iss(m_line);
 	std::string tmp, rtmp;
 
@@ -122,29 +119,30 @@ bool irc::Request_parser::parse(void) {
 
 			/* Get the end of line */
 			std::getline(iss, rtmp, '\n');
-			tmp += " " + rtmp; // Fix skipped whitespaces
+			tmp += " " + rtmp; // Fix skipped spaces
 		}
 
-		/* Add to arguments list */
+		/* Add string to the arguments list */
 		m_arguments.push_back(tmp);
-		++m_nb_arguments;
+		++m_nb_arguments; /* Update arguments count */
 
 		/* Get the next word */
 		std::getline(iss, tmp, ' ');
 	}
 
+	/* No error */
 	return true;
 }
 
 const std::string& irc::Request_parser::getPrefix(void) const {
 
-	/* Return prefix string */
+	/* Return the prefix string */
 	return m_prefix;
 }
 
 bool irc::Request_parser::hasPrefix(void) const {
 
-	/* Return prefix flag */
+	/* Return the prefix flag */
 	return m_has_prefix;
 }
 
@@ -156,18 +154,18 @@ const std::string& irc::Request_parser::getCommand(void) const {
 
 const std::vector<std::string>& irc::Request_parser::getArguments(void) const {
 
-	/* Return the list of arguments of the command */
+	/* Return the list of arguments */
 	return m_arguments;
 }
 
 int irc::Request_parser::getArgumentsCount(void) const {
 
-	/* Return the number of arguments of the command */
+	/* Return the number of arguments */
 	return m_nb_arguments;
 }
 
 const std::string& irc::Request_parser::getRaw(void) const {
 
-	/* Return raw request line */
+	/* Return the raw request line */
 	return m_line;
 }
