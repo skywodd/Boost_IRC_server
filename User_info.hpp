@@ -5,12 +5,9 @@
  * @version 1.0
  * @see http://skyduino.wordpress.com/
  *
- * @section intro_sec Introduction
- * This class is a container for IRC user informations.\n
- * \n
  * Please report bug to <skywodd at gmail.com>
  *
- * @section licence_sec Licence
+ * @section licence_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
  *  the Free Software Foundation, either version 3 of the License, or\n
@@ -36,6 +33,8 @@
 
 /**
  * @namespace irc
+ *
+ * Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
@@ -45,64 +44,85 @@ class Configuration;
 
 /**
  * @class User_info
+ *
+ * This class is designed as a container for IRC informations about an user.\n
+ * This class store ALL informations about the user.\n
+ * \n
+ * Be aware, this class does not make any communication with other class, it's just like a big structure.\n
+ * All informations are available by getter / setter functions (or only getter if read-only).\n
+ * \n
+ * This class keep a list of joined channels and a counter of joined channels.\n
+ * Channels operations MUST be done TWO times, one time at "channel" side and one time at "user" side.\n
+ * \n
+ * Take a look at class's members documentation for details.\n
  */
 class User_info: private boost::noncopyable {
 public:
 	/**
 	 * User connection states
+	 *
+	 * (the request handler is designed as a states machine)
 	 */
 	typedef enum {
-		REQUESTING_INIT, /*!< Connection need init before use */
+		REQUESTING_INIT, /*!< Connection need initialization before use */
 		WAIT_FOR_PASS, /*!< Waiting for PASS command */
-		WAIT_FOR_NICK, /*!< Waiting for NICK command */
 		WAIT_FOR_USER, /*!< Waiting for USER command */
 		READY_FOR_MSG, /*!< Ready for speaking over IRC network */
 	} User_connection_state;
 
 protected:
-	/** User nickname (set by user with NICK command) */
+	/** User nickname (set by the user using the NICK command) */
 	std::string m_nickname;
 
-	/** Username (specified with USER command) */
-	std::string m_username; // Read only
+	/** User name (set by the user using USER command)
+	 *
+	 * @remarks Read only (need class overloading)
+	 */
+	std::string m_username;
 
-	/** User hostname (reverse lookup of remote endpoint) */
-	std::string m_hostname; // Read only
+	/** User host name (reverse lookup of remote end point)
+	 *
+	 * @remarks Read only (need class overloading)
+	 */
+	std::string m_hostname;
 
-	/** User server name (IRC relay server name of user) */
+	/** User server name (IRC relay server used by the user)
+	 *
+	 * @warning This implementation of IRC server does NOT include server-to-server communications !
+	 */
 	std::string m_servername;
 
-	/** User real name */
+	/** User real name (set by the user using USER command) */
 	std::string m_realname;
 
-	/** Pre-computed prefix */
+	/** Computed prefix (updated at each call of setter function of m_nickname or m_realname) */
 	std::string m_prefix;
 
-	/** Connection state */
+	/** Connection state (used by the request handler (states machine)) */
 	unsigned char m_state;
 
-	/** True if user is IRC op */
+	/** True if the user is an IRC ops */
 	bool m_is_ircop;
 
-	/** True if user can receive wallops messages */
+	/** True if the user can receive wallops messages */
 	bool m_is_receiving_wallops;
 
-	/** True if user can receive notice messages */
+	/** True if the user can receive notice messages */
 	bool m_is_receiving_notices;
 
 	/** True if the user is invisible on channels */
 	bool m_is_invisible;
 
-	/** True if user is away */
+	/** True if the user is away */
 	bool m_is_away;
 
-	/** Away message */
+	/** Away message of the user */
 	std::string m_away_message;
 
 	/** Current count of joined channels */
 	int m_nb_join;
 
-	/** count limit of joinable channels */
+	/** Count limit of joined channels */
 	int m_nb_join_limit;
 
 	/** List of joined channels */
@@ -112,7 +132,7 @@ public:
 	/**
 	 * Instantiate a new User_info object
 	 *
-	 * @param configuration Default user informations configuration
+	 * @param configuration Default user informations to use
 	 */
 	explicit User_info(const Configuration& configuration);
 
@@ -138,23 +158,23 @@ public:
 	void setNickname(const std::string& nickname);
 
 	/**
-	 * Get the username of the user
+	 * Get the user name of the user
 	 *
-	 * @return The username of the user
+	 * @return The user name of the user
 	 */
 	const std::string& getUsername(void) const;
 
 	/**
-	 * Set the username of the user
+	 * Set the user name of the user
 	 *
-	 * @param username The new username of the user
+	 * @param user name The new user name of the user
 	 */
 	void setUsername(const std::string& username);
 
 	/**
-	 * Get the hostname of the user
+	 * Get the host name of the user
 	 *
-	 * @return The hostname of the user
+	 * @return The host name of the user
 	 */
 	const std::string& getHostname(void) const;
 
@@ -180,9 +200,9 @@ public:
 	void setRealname(const std::string& realname);
 
 	/**
-	 * Get the pre-computed prefix of the user
+	 * Get the computed prefix of the user
 	 *
-	 * @return The pre-computed prefix of the user
+	 * @return The computed prefix of the user
 	 */
 	const std::string& getPrefix(void) const;
 
@@ -201,16 +221,16 @@ public:
 	void setState(const unsigned char state);
 
 	/**
-	 * Get the IRC op status of the user
+	 * Get the "IRC ops" status of the user
 	 *
-	 * @return The IRC op status of the user
+	 * @return The "IRC ops" status of the user
 	 */
 	bool isIrcOp(void) const;
 
 	/**
-	 * Set the IRC op status of the user
+	 * Set the "IRC ops" status of the user
 	 *
-	 * @param is_ircop The new IRC op status of the user
+	 * @param is_ircop The new "IRC ops" status of the user
 	 */
 	void setIrcOp(const bool is_ircop);
 
@@ -259,7 +279,7 @@ public:
 	/**
 	 * Check if the user is away
 	 *
-	 * @return True if the user is away
+	 * @return True if the user is away, false otherwise
 	 */
 	bool isAway(void) const;
 
@@ -271,9 +291,9 @@ public:
 	void setAway(const bool is_away);
 
 	/**
-	 * Get the AWAY message of the user
+	 * Get the current AWAY message of the user
 	 *
-	 * @return The AWAY message of the user
+	 * @return The current AWAY message of the user
 	 */
 	const std::string& getAwayMsg(void) const;
 
@@ -292,41 +312,42 @@ public:
 	int getJoinCount(void) const;
 
 	/**
-	 * Get the maximum number of channels joinable by the user
+	 * Get the maximum number of channels to be joined by the user
 	 *
-	 * @return The maximum number of channels joinable by the user
+	 * @return The maximum number of channels to be joined by the user
 	 */
 	int getJoinCoutLimit(void) const;
 
 	/**
 	 * Add a channel to the user's join history
 	 *
-	 * @param channel_ptr The pointer to the channel to add
+	 * @param channel_ptr An intelligent pointer to the channel to add to the user's join history
 	 */
 	void addJoin(boost::shared_ptr<Channel_info> channel_ptr);
 
 	/**
 	 * Remove a channel from the user's join history
 	 *
-	 * @param channel_ptr The pointer to the channel to remove
+	 * @param channel_ptr An intelligent pointer to the channel to remove from the user's join history
 	 */
 	void removeJoin(boost::shared_ptr<Channel_info> channel_ptr);
 
 	/**
 	 * Check if the user as join the specified channel
 	 *
-	 * @param channel_ptr The pointer to the target channel
+	 * @param channel_ptr An intelligent pointer to the target to test
 	 */
 	bool asJoin(boost::shared_ptr<Channel_info> channel_ptr) const;
 
 	/**
 	 * Generate an unique nickname (anonymous nickname)
 	 *
-	 * @return The generated nickname
+	 * @return An unique anonymous nickname
 	 */
 	static std::string generate_nickname(void);
+
 };
 
-}
+} /* namespace irc */
 
 #endif /* USER_INFO_H_ */

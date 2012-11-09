@@ -31,15 +31,14 @@ irc::User_info::User_info(const Configuration& configuration) :
 				configuration.is_invisible), m_is_away(configuration.is_away), m_away_message(), m_nb_join(
 				0), m_nb_join_limit(configuration.nb_join_limit), m_channels_joined() {
 
-	/* Generate a new anonymous nickname (used to track init process) */
+	/* Generate a new anonymous nickname (used to track initialization process) */
 	m_nickname = generate_nickname();
-	debug::DEBUG_LOG("Creating user", m_nickname);
-	debug::DEBUG_LOG(m_nickname, "IRC op", m_is_ircop);
+	debug::DEBUG_LOG(m_nickname, "Creating user ...");
+	debug::DEBUG_LOG(m_nickname, "IRC ops", m_is_ircop);
 	debug::DEBUG_LOG(m_nickname, "Receiving wallops", m_is_receiving_wallops);
-	debug::DEBUG_LOG(m_nickname, "Receving notices", m_is_receiving_notices);
+	debug::DEBUG_LOG(m_nickname, "Receiving notices", m_is_receiving_notices);
 	debug::DEBUG_LOG(m_nickname, "Invisible", m_is_invisible);
 	debug::DEBUG_LOG(m_nickname, "Away", m_is_away);
-	debug::DEBUG_LOG(m_nickname, "Away msg", m_away_message);
 	debug::DEBUG_LOG(m_nickname, "Join limit", m_nb_join_limit);
 
 	/* Initialize connection state according to the server protection */
@@ -51,9 +50,9 @@ irc::User_info::User_info(const Configuration& configuration) :
 
 	} else { /* Server is not password protected */
 
-		/* Waiting for NICK command */
-		debug::DEBUG_LOG(m_nickname, "Waiting for NICK ...");
-		m_state = WAIT_FOR_NICK;
+		/* Waiting for NICK / USER command */
+		debug::DEBUG_LOG(m_nickname, "Waiting for USER ...");
+		m_state = WAIT_FOR_USER;
 	}
 }
 
@@ -78,28 +77,30 @@ void irc::User_info::setNickname(const std::string& nickname) {
 	/* Update prefix */
 	Prefix_generator pgen(m_nickname, m_username, m_hostname);
 	m_prefix = pgen.toString();
+	debug::DEBUG_LOG(m_nickname, "User prefix", m_prefix);
 }
 
 const std::string& irc::User_info::getUsername(void) const {
 
-	/* Return the username of the user */
+	/* Return the user name of the user */
 	return m_username;
 }
 
 void irc::User_info::setUsername(const std::string& username) {
 
-	/* Set the username of the user */
-	debug::DEBUG_LOG(m_nickname, "Username", username);
+	/* Set the user name of the user */
+	debug::DEBUG_LOG(m_nickname, "User name", username);
 	m_username = username;
 
 	/* Update prefix */
 	Prefix_generator pgen(m_nickname, m_username, m_hostname);
 	m_prefix = pgen.toString();
+	debug::DEBUG_LOG(m_nickname, "User prefix", m_prefix);
 }
 
 const std::string& irc::User_info::getHostname(void) const {
 
-	/* Return the hostname of the user */
+	/* Return the host name of the user */
 	return m_hostname;
 }
 
@@ -124,7 +125,7 @@ void irc::User_info::setRealname(const std::string& realname) {
 
 const std::string& irc::User_info::getPrefix(void) const {
 
-	/* Return the current pre-computed prefix */
+	/* Return the current computed prefix */
 	return m_prefix;
 }
 
@@ -137,20 +138,20 @@ unsigned char irc::User_info::getState(void) const {
 void irc::User_info::setState(const unsigned char state) {
 
 	/* Set the connection state of the user */
-	debug::DEBUG_LOG(m_nickname, "Conn state", (int) state);
+	debug::DEBUG_LOG(m_nickname, "Connection state", (int) state);
 	m_state = state;
 }
 
 bool irc::User_info::isIrcOp(void) const {
 
-	/* Return the "irc op" status of the user */
+	/* Return the "irc ops" status of the user */
 	return m_is_ircop;
 }
 
 void irc::User_info::setIrcOp(const bool is_ircop) {
 
-	/* Set the "irc op" status of the user */
-	debug::DEBUG_LOG(m_nickname, "IRC op", is_ircop);
+	/* Set the "irc ops" status of the user */
+	debug::DEBUG_LOG(m_nickname, "IRC ops", is_ircop);
 	m_is_ircop = is_ircop;
 }
 
@@ -163,7 +164,7 @@ bool irc::User_info::isReceivingWallops(void) const {
 void irc::User_info::setReceivingWallops(const bool is_receiving_wallops) {
 
 	/* Set the "receiving wallops" status of the user */
-	debug::DEBUG_LOG(m_nickname, "receiving wallops", is_receiving_wallops);
+	debug::DEBUG_LOG(m_nickname, "Receiving wallops", is_receiving_wallops);
 	m_is_receiving_wallops = is_receiving_wallops;
 }
 
@@ -215,7 +216,7 @@ const std::string& irc::User_info::getAwayMsg(void) const {
 void irc::User_info::setAwayMsg(const std::string& away_msg) {
 
 	/* Set the "is away" status of the user */
-	debug::DEBUG_LOG(m_nickname, "Away msg", away_msg);
+	debug::DEBUG_LOG(m_nickname, "Away message", away_msg);
 	m_away_message = away_msg;
 }
 
@@ -227,14 +228,14 @@ int irc::User_info::getJoinCount(void) const {
 
 int irc::User_info::getJoinCoutLimit(void) const {
 
-	/* Return the maximum number of channels joinable by the user */
+	/* Return the maximum number of channels to be joined by the user */
 	return m_nb_join_limit;
 }
 
 void irc::User_info::addJoin(boost::shared_ptr<Channel_info> channel_ptr) {
 
 	/* Add a channel to the user's join history */
-	debug::DEBUG_LOG(m_nickname, "Add channel to history");
+	debug::DEBUG_LOG(m_nickname, "Add channel to user history");
 	if (m_channels_joined.insert(channel_ptr).second) /* Check for error */
 		++m_nb_join; /* Update channels count */
 }
@@ -242,7 +243,7 @@ void irc::User_info::addJoin(boost::shared_ptr<Channel_info> channel_ptr) {
 void irc::User_info::removeJoin(boost::shared_ptr<Channel_info> channel_ptr) {
 
 	/* Remove a channel from the user's join history */
-	debug::DEBUG_LOG(m_nickname, "Remove channel from history");
+	debug::DEBUG_LOG(m_nickname, "Remove channel from user history");
 	if (m_channels_joined.erase(channel_ptr)) /* Check for error */
 		--m_nb_join; /* Update channels count */
 }
