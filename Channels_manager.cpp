@@ -17,20 +17,21 @@
 
 /* Includes */
 #include <algorithm>
+#include <boost/bind.hpp>
 #include "Channels_manager.hpp"
 #include "Configuration.hpp"
 #include "Channel_info.hpp"
 #include "Connection.hpp"
 #include "Debug_log.hpp"
+#include "Server.hpp"
 
-irc::Channels_manager::Channels_manager(const Configuration& configuration) :
-		m_database(), m_nb_channels(0), m_nb_channels_limit(
-				configuration.nb_channels_limit), m_configuration(configuration) {
+irc::Channels_manager::Channels_manager(void) :
+		m_database() {
 
 	/* Creating a new database */
 	debug::DEBUG_LOG("Channels database", "Creating database ...");
 	debug::DEBUG_LOG("Channels database, max number of channels",
-			m_nb_channels_limit);
+			Server::getInstance()->getConfiguration().nb_channels_limit);
 }
 
 irc::Channels_manager::~Channels_manager(void) {
@@ -50,13 +51,13 @@ bool irc::Channels_manager::search_channel(
 int irc::Channels_manager::getChannelsCount(void) const {
 
 	/* Return the number of channels in the database */
-	return m_nb_channels;
+	return m_database.size();
 }
 
 int irc::Channels_manager::getChannelsCountLimit(void) const {
 
 	/* Return the maximum number of channels of the database */
-	return m_nb_channels_limit;
+	return Server::getInstance()->getConfiguration().nb_channels_limit;
 }
 
 boost::shared_ptr<irc::Channel_info> irc::Channels_manager::add(
@@ -64,10 +65,8 @@ boost::shared_ptr<irc::Channel_info> irc::Channels_manager::add(
 
 	/* Add a channel into the database */
 	debug::DEBUG_LOG("Add channel to the database", name);
-	boost::shared_ptr<Channel_info> new_chan = Channel_info::create(
-			m_configuration);
+	boost::shared_ptr<Channel_info> new_chan = Channel_info::create();
 	m_database[name] = new_chan;
-	++m_nb_channels; /* Update channels count */
 
 	/* Return freshly created channel */
 	return new_chan;
@@ -77,8 +76,7 @@ void irc::Channels_manager::remove(const std::string& name) {
 
 	/* Remove a channel from the database */
 	debug::DEBUG_LOG("Remove channel from database", name);
-	if (m_database.erase(name)) /* Check for error */
-		--m_nb_channels; /* Update channels count */
+	m_database.erase(name);
 }
 
 void irc::Channels_manager::remove(boost::shared_ptr<Channel_info> channel) {
@@ -87,9 +85,11 @@ void irc::Channels_manager::remove(boost::shared_ptr<Channel_info> channel) {
 	debug::DEBUG_LOG("Remove channel from database", "PTR");
 	std::map<std::string, boost::shared_ptr<Channel_info> >::iterator i =
 			std::find_if(m_database.begin(), m_database.end(),
-					boost::bind(&Channels_manager::search_channel, _1));
-	if (i != m_database.end() && m_database.erase(i)) /* Check for error */
-		--m_nb_channels; /* Update channels count */
+					boost::bind(&Channels_manager::search_channel, channel, _1));
+
+	/* Check if channel is found */
+	if (i != m_database.end())
+		m_database.erase(i);
 }
 
 boost::shared_ptr<irc::Channel_info> irc::Channels_manager::access(

@@ -40,9 +40,7 @@
 namespace irc {
 
 /* Forward declarations */
-class Configuration;
 class Channel_info;
-class Connection;
 
 /**
  * @class Channels_manager
@@ -63,15 +61,6 @@ protected:
 	/** Channels database: channel name as keys, channel informations as values */
 	std::map<std::string, boost::shared_ptr<Channel_info> > m_database;
 
-	/** Number of channels currently into the database */
-	int m_nb_channels;
-
-	/** Maximum number of channels of the database */
-	int m_nb_channels_limit;
-
-	/** Default channels configuration */
-	const Configuration& m_configuration;
-
 	/**
 	 * Functor : Search channel in the database by pointer
 	 *
@@ -84,10 +73,8 @@ protected:
 public:
 	/**
 	 * Instantiate a new channels database
-	 *
-	 * @param configuration Configuration of database
 	 */
-	explicit Channels_manager(const Configuration& configuration);
+	explicit Channels_manager(void);
 
 	/**
 	 * Destructor

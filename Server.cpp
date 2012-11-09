@@ -29,12 +29,14 @@
 irc::Server::Server(const std::string& address, const std::string& port,
 		Configuration& configuration) :
 		m_io_service(), m_signals(m_io_service), m_acceptor(m_io_service), m_configuration(
-				configuration), m_users_database(m_configuration), m_channels_database(
-				m_configuration), m_since(boost::posix_time::second_clock::local_time()), m_instance(this) {
+				configuration), m_users_database(), m_channels_database(), m_since(
+				boost::posix_time::second_clock::local_time()) {
 
 	/* Creating a new server instance */
 	debug::DEBUG_LOG(m_configuration.svdomain, "Creating server instance ...");
-	debug::DEBUG_LOG("Startup time", boost::posix_time::to_simple_string(m_since));
+	m_instance = this;
+	debug::DEBUG_LOG("Startup time",
+			boost::posix_time::to_simple_string(m_since));
 
 	/* Register all signals that indicate when the server should exit */
 #if BOOST_VERSION > 104700
@@ -72,7 +74,7 @@ irc::Server::~Server(void) {
 			"Destroying server instance ...");
 }
 
-irc::Server* irc::Server::getInstance(void) const {
+irc::Server* irc::Server::getInstance(void) {
 
 	/* Return the pointer to the current instance */
 	return m_instance;
@@ -84,8 +86,7 @@ void irc::Server::start_accept(void) {
 	debug::DEBUG_LOG(m_configuration.svdomain,
 			"Waiting for incoming connection ...");
 	boost::shared_ptr<Connection> new_connection = Connection::create(
-			m_io_service, m_users_database, m_channels_database,
-			m_configuration);
+			m_io_service);
 
 	/* Register callback on accept */
 	m_acceptor.async_accept(new_connection->socket(),
@@ -157,4 +158,22 @@ boost::posix_time::ptime irc::Server::runSince(void) const {
 
 	/* Return the server startup time */
 	return m_since;
+}
+
+const irc::Configuration& irc::Server::getConfiguration(void) const {
+
+	/* Return a reference to the server configuration */
+	return m_configuration;
+}
+
+irc::Users_manager& irc::Server::getUsersDatabase(void) {
+
+	/* Return a reference to the users database */
+	return m_users_database;
+}
+
+irc::Channels_manager& irc::Server::getChannelsDatabase(void) {
+
+	/* Return a reference to the channels database */
+	return m_channels_database;
 }

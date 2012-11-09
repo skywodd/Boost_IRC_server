@@ -1,16 +1,13 @@
 /**
  * @file Channel_info.hpp
- * @brief Channel informations wrapper
+ * @brief Channel informations container
  * @author SkyWodd
  * @version 1.0
  * @see http://skyduino.wordpress.com/
  *
- * @section intro_sec Introduction
- * This class is designed as a container for channels informations.\n
- * \n
  * Please report bug to <skywodd at gmail.com>
  *
- * @section licence_sec Licence
+ * @section licence_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
  *  the Free Software Foundation, either version 3 of the License, or\n
@@ -38,67 +35,79 @@
 
 /**
  * @namespace irc
+ *
+ * Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
 /* Forward declaration */
 class Connection;
-class Configuration;
 
 /**
  * @class Channel_info
+ *
+ * This class is designed as a container for IRC informations about a channel.\n
+ * This class store ALL informations about the channel and it's users.\n
+ * \n
+ * Be aware, this class does not make any communication with other class, it's just like a big structure.\n
+ * All informations are available by getter / setter functions (or only getter if read-only).\n
+ * \n
+ * This class keep a list of joined users and a counter of joined users.\n
+ * Channels operations MUST be done TWO times, one time at "channel" side and one time at "user" side.\n
+ * \n
+ * Take a look at class's members documentation for details.\n
  */
 class Channel_info: public boost::enable_shared_from_this<Channel_info>,
 		private boost::noncopyable {
 public:
 	/**
-	 * Informations about an user in a channel
-	 *
 	 * @class Channel_user_info
+	 *
+	 * Informations about an user in a channel
 	 */
 	class Channel_user_info {
 	protected:
-		/** True if user can speak on the channel */
+		/** True if the user can speak on the channel */
 		bool m_can_speak;
 
-		/** True if the user is op on the channel */
+		/** True if the user is ops on the channel */
 		bool m_is_op;
 
 	public:
 		/**
 		 * Instantiate a new Channel_user_info object
 		 *
-		 * @param can_speak True if user can speak on the channel
-		 * @param is_op True if the user is op on the channel
+		 * @param can_speak True if the user can speak on the channel
+		 * @param is_op True if the user is ops on the channel
 		 */
 		explicit Channel_user_info(const bool can_speak = true,
 				const bool is_op = false);
 
 		/**
-		 * Check if user can speak on the channel
+		 * Check if the user can speak on the channel
 		 *
-		 * @return True if user can speak on the channel, false otherwise
+		 * @return True if the user can speak on the channel, false otherwise
 		 */
 		bool canSpeak(void) const;
 
 		/**
-		 * Set if user can speak on the channel
+		 * Set if the user can speak on the channel
 		 *
-		 * @param can_speak Set to true if the user is op on the channel, false otherwise
+		 * @param can_speak Set to true if the user can speak on the channel, false otherwise
 		 */
 		void setCanSpeak(const bool can_speak);
 
 		/**
-		 * Check if the user is op on the channel
+		 * Check if the user is ops on the channel
 		 *
-		 * @return True if the user is op on the channel, false otherwise
+		 * @return True if the user is ops on the channel, false otherwise
 		 */
 		bool isOp(void) const;
 
 		/**
-		 * Set if the user is op on the channel
+		 * Set if the user is ops on the channel
 		 *
-		 * @param is_op Set to true if the user is op on the channel, false otherwise
+		 * @param is_op Set to true if the user is ops on the channel, false otherwise
 		 */
 		void setOp(const bool is_op);
 
@@ -120,20 +129,14 @@ protected:
 	/** True if the channel is on invitation only */
 	bool m_invite_only;
 
-	/** True if the topic can be set by op only */
+	/** True if the topic can be set by ops only */
 	bool m_topic_setby_op_only;
 
-	/** True if messages outside from the channel cannot be sent */
+	/** True if messages from outside of the channel cannot be sent */
 	bool m_no_outside_msg;
 
 	/** True if the channel is moderated */
 	bool m_moderated;
-
-	/** Maximum number of users on the channel */
-	int m_users_limit;
-
-	/** Number of users ont the channel */
-	int m_nb_users;
 
 	/** List of banned mask */
 	std::set<std::string> m_banmask;
@@ -144,18 +147,19 @@ protected:
 	/** Database of users currently on the channel, with channel-specific informations */
 	std::map<boost::shared_ptr<Connection>, Channel_user_info> m_users;
 
-	/**
-	 * Instantiate a new channel_info object
-	 *
-	 * @param configuration Channel configuration
-	 */
-	explicit Channel_info(const Configuration& configuration);
+	/** Maximum number of users on the channel */
+	int m_users_limit;
 
 	/**
-	 * Send message to user on channel
+	 * Instantiate a new channel_info object
+	 */
+	explicit Channel_info(void);
+
+	/**
+	 * Functor : Send message to user on channel
 	 *
-	 * @param user Pointer to the targeted user
-	 * @param message Message to send
+	 * @param user Pair of values from the channel list pointing to the user
+	 * @param message Message to send to the user
 	 */
 	static void send_message(
 			std::map<boost::shared_ptr<Connection>, Channel_user_info>::value_type user_pair,
@@ -167,8 +171,7 @@ public:
 	 *
 	 * @param configuration Channel configuration
 	 */
-	static boost::shared_ptr<Channel_info> create(
-			const Configuration& configuration);
+	static boost::shared_ptr<Channel_info> create(void);
 
 	/**
 	 * Destructor
@@ -248,16 +251,16 @@ public:
 	void setInviteOnly(const bool is_invite_only);
 
 	/**
-	 * Check if the topic can be set by op only
+	 * Check if the topic can be set by ops only
 	 *
-	 * @return True if the topic can be set by op only, false otherwise
+	 * @return True if the topic can be set by ops only, false otherwise
 	 */
 	bool isTopicSetByOpOnly(void) const;
 
 	/**
-	 * Set if the topic can be set by op only
+	 * Set if the topic can be set by ops only
 	 *
-	 * @param is_topic_setby_op_only Set to true if the topic can be set by op only, false otherwise
+	 * @param is_topic_setby_op_only Set to true if the topic can be set by ops only, false otherwise
 	 */
 	void setTopicSetByOpOnly(const bool is_topic_setby_op_only);
 
@@ -314,7 +317,7 @@ public:
 	 * Add user to the channel
 	 *
 	 * @param user Pointer to the user to add to the channel
-	 * @param is_op True if user is op on the channel (false by default)
+	 * @param is_op Set to true if user is ops on the channel (false by default)
 	 */
 	void addJoin(boost::shared_ptr<Connection> user, const bool is_op = false);
 
@@ -376,7 +379,7 @@ public:
 	bool isBanned(const std::string& banmask) const;
 
 	/**
-	 * Get channel informations about an user
+	 * Get the channel informations about an user
 	 *
 	 * @param user Pointer to the user who want to retrieve the channel informations
 	 * @return Channel informations about the targeted user
@@ -389,8 +392,9 @@ public:
 	 * @param buffer Data to send to all users on the channel
 	 */
 	void writeToAll(const std::string& buffer);
+
 };
 
-}
+} /* namespace irc */
 
 #endif /* CHANNEL_INFO_H_ */

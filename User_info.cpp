@@ -22,14 +22,16 @@
 #include "Channel_info.hpp"
 #include "Prefix_wrapper.hpp"
 #include "Debug_log.hpp"
+#include "Server.hpp"
 
-irc::User_info::User_info(const Configuration& configuration) :
+irc::User_info::User_info(void) :
 		m_nickname(), m_username(), m_hostname(), m_servername(), m_realname(), m_state(
-				REQUESTING_INIT), m_is_ircop(configuration.is_ircop), m_is_receiving_wallops(
-				configuration.is_receiving_wallops), m_is_receiving_notices(
-				configuration.is_receiving_notices), m_is_invisible(
-				configuration.is_invisible), m_is_away(configuration.is_away), m_away_message(), m_nb_join(
-				0), m_nb_join_limit(configuration.nb_join_limit), m_channels_joined() {
+				REQUESTING_INIT), m_is_ircop(
+				Server::getInstance()->getConfiguration().is_ircop), m_is_receiving_wallops(
+				Server::getInstance()->getConfiguration().is_receiving_wallops), m_is_receiving_notices(
+				Server::getInstance()->getConfiguration().is_receiving_notices), m_is_invisible(
+				Server::getInstance()->getConfiguration().is_invisible), m_is_away(
+				Server::getInstance()->getConfiguration().is_away), m_away_message(), m_channels_joined() {
 
 	/* Generate a new anonymous nickname (used to track initialization process) */
 	m_nickname = generate_nickname();
@@ -39,10 +41,11 @@ irc::User_info::User_info(const Configuration& configuration) :
 	debug::DEBUG_LOG(m_nickname, "Receiving notices", m_is_receiving_notices);
 	debug::DEBUG_LOG(m_nickname, "Invisible", m_is_invisible);
 	debug::DEBUG_LOG(m_nickname, "Away", m_is_away);
-	debug::DEBUG_LOG(m_nickname, "Join limit", m_nb_join_limit);
+	debug::DEBUG_LOG(m_nickname, "Join limit",
+			Server::getInstance()->getConfiguration().nb_join_limit);
 
 	/* Initialize connection state according to the server protection */
-	if (configuration.is_password_protected) { /* Server is password protected */
+	if (Server::getInstance()->getConfiguration().is_password_protected) { /* Server is password protected */
 
 		/* Waiting for PASS command */
 		debug::DEBUG_LOG(m_nickname, "Waiting for PASS ...");
@@ -223,29 +226,27 @@ void irc::User_info::setAwayMsg(const std::string& away_msg) {
 int irc::User_info::getJoinCount(void) const {
 
 	/* Return the number of channels joined by the user */
-	return m_nb_join;
+	return m_channels_joined.size();
 }
 
 int irc::User_info::getJoinCoutLimit(void) const {
 
 	/* Return the maximum number of channels to be joined by the user */
-	return m_nb_join_limit;
+	return Server::getInstance()->getConfiguration().nb_join_limit;
 }
 
 void irc::User_info::addJoin(boost::shared_ptr<Channel_info> channel_ptr) {
 
 	/* Add a channel to the user's join history */
 	debug::DEBUG_LOG(m_nickname, "Add channel to user history");
-	if (m_channels_joined.insert(channel_ptr).second) /* Check for error */
-		++m_nb_join; /* Update channels count */
+	m_channels_joined.insert(channel_ptr);
 }
 
 void irc::User_info::removeJoin(boost::shared_ptr<Channel_info> channel_ptr) {
 
 	/* Remove a channel from the user's join history */
 	debug::DEBUG_LOG(m_nickname, "Remove channel from user history");
-	if (m_channels_joined.erase(channel_ptr)) /* Check for error */
-		--m_nb_join; /* Update channels count */
+	m_channels_joined.erase(channel_ptr);
 }
 
 bool irc::User_info::asJoin(boost::shared_ptr<Channel_info> channel_ptr) const {

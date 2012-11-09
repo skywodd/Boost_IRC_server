@@ -40,7 +40,6 @@ namespace irc {
 
 /* Forward declarations */
 class Channel_info;
-class Configuration;
 
 /**
  * @class User_info
@@ -119,22 +118,14 @@ protected:
 	/** Away message of the user */
 	std::string m_away_message;
 
-	/** Current count of joined channels */
-	int m_nb_join;
-
-	/** Count limit of joined channels */
-	int m_nb_join_limit;
-
 	/** List of joined channels */
 	std::set<boost::shared_ptr<Channel_info> > m_channels_joined;
 
 public:
 	/**
 	 * Instantiate a new User_info object
-	 *
-	 * @param configuration Default user informations to use
 	 */
-	explicit User_info(const Configuration& configuration);
+	explicit User_info(void);
 
 	/**
 	 * Destructor

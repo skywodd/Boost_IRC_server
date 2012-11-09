@@ -22,6 +22,7 @@
 #include "Configuration.hpp"
 #include "Connection.hpp"
 #include "Debug_log.hpp"
+#include "Server.hpp"
 
 bool irc::Users_manager::find_by_nickname(boost::shared_ptr<Connection> user,
 		std::string& nickname) {
@@ -54,14 +55,13 @@ void irc::Users_manager::send_notice(boost::shared_ptr<Connection> user,
 	}
 }
 
-irc::Users_manager::Users_manager(const Configuration& configuration) :
-		m_database(), m_nb_users(0), m_nb_users_limit(
-				configuration.nb_users_limit) {
+irc::Users_manager::Users_manager(void) :
+		m_database() {
 
 	/* Create a new users database */
 	debug::DEBUG_LOG("Users database", "Creating database ...");
 	debug::DEBUG_LOG("Users database", "max numbers of users",
-			m_nb_users_limit);
+			Server::getInstance()->getConfiguration().nb_users_limit);
 }
 
 irc::Users_manager::~Users_manager(void) {
@@ -73,7 +73,7 @@ irc::Users_manager::~Users_manager(void) {
 int irc::Users_manager::getUsersCount(void) const {
 
 	/* Return the number of users currently into the database */
-	return m_nb_users;
+	return m_database.size();
 }
 
 int irc::Users_manager::getInvisibleUsersCount(void) const {
@@ -117,23 +117,21 @@ int irc::Users_manager::getIRCopsCount(void) const {
 int irc::Users_manager::getUsersCountLimit(void) const {
 
 	/* Return the maximum number of users of the database */
-	return m_nb_users_limit;
+	return Server::getInstance()->getConfiguration().nb_users_limit;
 }
 
 void irc::Users_manager::add(boost::shared_ptr<Connection> user) {
 
 	/* Add an user into the database */
 	debug::DEBUG_LOG("Users database", "add user", user->getNickname());
-	if (m_database.insert(user).second) /* Check for error */
-		++m_nb_users; /* Update users count */
+	m_database.insert(user).second;
 }
 
 void irc::Users_manager::remove(boost::shared_ptr<Connection> user) {
 
 	/* Remove an user from the database */
 	debug::DEBUG_LOG("Users database", "remove user", user->getNickname());
-	if (m_database.erase(user))/* Check for error */
-		--m_nb_users; /* Update users count */
+	m_database.erase(user);
 }
 
 boost::shared_ptr<irc::Connection> irc::Users_manager::access(

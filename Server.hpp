@@ -91,7 +91,8 @@ protected:
 	 * @param new_connection Intelligent pointer to the connection used for accept
 	 * @param error Error code (if any)
 	 */
-	void handle_accept(boost::shared_ptr<Connection> new_connection, const boost::system::error_code& error);
+	void handle_accept(boost::shared_ptr<Connection> new_connection,
+			const boost::system::error_code& error);
 
 public:
 	/**
@@ -105,14 +106,15 @@ public:
 	 * @param port Port to listen on
 	 * @param configuration Server configuration to use
 	 */
-	explicit Server(const std::string& address, const std::string& port, Configuration& configuration);
+	explicit Server(const std::string& address, const std::string& port,
+			Configuration& configuration);
 
 	/**
 	 * Get the pointer to the server instance
 	 *
 	 * @return The pointer to the server instance
 	 */
-	Server* getInstance(void) const;
+	static Server* getInstance(void);
 
 	/**
 	 * Destructor
@@ -139,6 +141,27 @@ public:
 	 * @return Startup time in Posix_time format
 	 */
 	boost::posix_time::ptime runSince(void) const;
+
+	/**
+	 * Get a reference to the server configuration
+	 *
+	 * @return A reference to the server configuration (read only)
+	 */
+	const Configuration& getConfiguration(void) const;
+
+	/**
+	 * Get a reference to the users database
+	 *
+	 * @return A reference to the users database
+	 */
+	Users_manager& getUsersDatabase(void);
+
+	/**
+	 * Get a reference to the channels database
+	 *
+	 * @return A reference to the channels database
+	 */
+	Channels_manager& getChannelsDatabase(void);
 
 };
 

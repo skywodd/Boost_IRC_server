@@ -43,7 +43,6 @@ namespace irc {
 
 /* Forward declarations */
 class Connection;
-class Configuration;
 
 /**
  * @class Users_manager
@@ -63,12 +62,6 @@ class Users_manager: private boost::noncopyable {
 protected:
 	/** Users database */
 	std::set<boost::shared_ptr<Connection> > m_database;
-
-	/** Number of users currently into the database */
-	int m_nb_users;
-
-	/** Maximum number of users of the database */
-	int m_nb_users_limit;
 
 	/**
 	 * Functor : Search user in the database by nickname
@@ -103,10 +96,8 @@ protected:
 public:
 	/**
 	 * Instantiate a new users database
-	 *
-	 * @param configuration Database configuration to use
 	 */
-	explicit Users_manager(const Configuration& configuration);
+	explicit Users_manager(void);
 
 	/**
 	 * Destructor
