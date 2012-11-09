@@ -30,6 +30,7 @@
 #include "Reply_generator.hpp"
 #include "Sanity_check.hpp"
 #include "Debug_log.hpp"
+#include "Server.hpp"
 
 irc::Request_handler::Request_handler(Connection* parent) :
 		m_parent(parent), m_argc(0), m_argv(), m_reply() {
@@ -178,10 +179,11 @@ void irc::Request_handler::handle_PASS(void) {
 	}
 
 	/* Check password */
-	if (m_parent->getConf().server_password.count(m_argv[0])) {
+	if (Server::getInstance()->getConfiguration().server_password.count(
+			m_argv[0])) {
 
 		/* Password match */
-		m_parent->setState(Connection::WAIT_FOR_NICK);
+		m_parent->setState(Connection::WAIT_FOR_USER);
 
 	} else {
 
@@ -191,6 +193,10 @@ void irc::Request_handler::handle_PASS(void) {
 		m_parent->write(m_reply.toString());
 	}
 
+}
+
+void irc::Request_handler::process_PASS(const std::string& password) {
+	// TODO
 }
 
 void irc::Request_handler::handle_NICK(void) {
@@ -227,7 +233,7 @@ void irc::Request_handler::handle_NICK(void) {
 	}
 
 	/* Check if nickname already exist */
-	if (m_parent->getUsersDatabase().access(m_argv[0])) {
+	if (Server::getInstance()->getUsersDatabase().access(m_argv[0])) {
 
 		/* Nickname already exist */
 		m_reply.addPrefix(m_parent->getServername());
@@ -243,13 +249,8 @@ void irc::Request_handler::handle_NICK(void) {
 	/* Store nickname */
 	m_parent->setNickname(m_argv[0]);
 
-	/* Update m_parent state if necesary */
-	if (m_parent->getState() == Connection::WAIT_FOR_NICK) {
-
-		/* State require NICK -> require USER to be ready */
-		m_parent->setState(Connection::WAIT_FOR_USER);
-
-	} else if (m_parent->getState() == Connection::READY_FOR_MSG) {
+	/* Broadcast nick change if necesary */
+	if (m_parent->getState() == Connection::READY_FOR_MSG) {
 
 		/* Notice users on joined channels of nickname change */
 		m_reply.addPrefix(m_parent->getPrefix());
@@ -259,11 +260,14 @@ void irc::Request_handler::handle_NICK(void) {
 
 }
 
+void irc::Request_handler::process_NICK(const std::string& nickname) {
+	// TODO
+}
+
 void irc::Request_handler::handle_USER(void) {
 
 	/* Check state */
-	if (m_parent->getState() != Connection::WAIT_FOR_USER
-			&& m_parent->getState() != Connection::WAIT_FOR_NICK) {
+	if (m_parent->getState() != Connection::WAIT_FOR_USER) {
 
 		/* Already registered */
 		m_reply.addPrefix(m_parent->getServername());
@@ -317,6 +321,11 @@ void irc::Request_handler::handle_USER(void) {
 	send_welcome_msg();
 }
 
+void irc::Request_handler::process_USER(const std::string& username,
+		const std::string& realname) {
+	// TODO
+}
+
 void irc::Request_handler::handle_SERVER(void) {
 
 	/* Not implemented in this program */
@@ -347,10 +356,11 @@ void irc::Request_handler::handle_OPER(void) {
 
 	/* Find username */
 	std::map<std::string, std::string>::const_iterator ircop =
-			m_parent->getConf().server_ircop.find(m_argv[0]);
+			Server::getInstance()->getConfiguration().server_ircop.find(
+					m_argv[0]);
 
 	/* Check username */
-	if (ircop == m_parent->getConf().server_ircop.end()) {
+	if (ircop == Server::getInstance()->getConfiguration().server_ircop.end()) {
 
 		/* Wrong username */
 		m_reply.addPrefix(m_parent->getServername());
@@ -381,6 +391,11 @@ void irc::Request_handler::handle_OPER(void) {
 	}
 }
 
+void irc::Request_handler::process_OPER(const std::string& username,
+		const std::string& password) {
+	// TODO
+}
+
 void irc::Request_handler::handle_QUIT(void) {
 
 	/* Check state */
@@ -401,6 +416,10 @@ void irc::Request_handler::handle_QUIT(void) {
 		/* With empty quit message */
 		m_parent->close_because("");
 	}
+}
+
+void irc::Request_handler::process_QUIT(const std::string& message) {
+	// TODO
 }
 
 void irc::Request_handler::handle_SQUIT(void) {
@@ -443,7 +462,10 @@ void irc::Request_handler::handle_JOIN(void) {
 
 	/* Search channel */
 	boost::shared_ptr<Channel_info> channel =
-			m_parent->getChannelsDatabase().access(m_argv[0]);
+			Server::getInstance()->getChannelsDatabase().access(m_argv[0]);
+
+	/* True if a new channel have been created */
+	bool new_chan_created = false;
 
 	/* Check if channel exist */
 	if (channel) {
@@ -531,19 +553,29 @@ void irc::Request_handler::handle_JOIN(void) {
 		}
 
 		/* Create channel */
-		channel = m_parent->getChannelsDatabase().add(m_argv[0]);
+		channel = Server::getInstance()->getChannelsDatabase().add(m_argv[0]);
+
+		/* Turn on flag */
+		new_chan_created = true;
 	}
 
 	/* Add user to channel (channel and user side) */
-	channel->addJoin(m_parent->shared_from_this(), true);
-	m_parent->addJoin(m_parent->getChannelsDatabase().access(m_argv[0]));
+	channel->addJoin(m_parent->shared_from_this(),
+			new_chan_created || m_parent->isIrcOp());
+	m_parent->addJoin(
+			Server::getInstance()->getChannelsDatabase().access(m_argv[0]));
 
 	/* Notice users on channel of JOIN */
 	m_reply.addPrefix(m_parent->getPrefix());
 	m_reply.CMD_JOIN(m_argv[0], m_argv[1]);
 	channel->writeToAll(m_reply.toString());
 
-	/* Remarks: should normally send TOPIC and users list */
+	/* TODO should normally send TOPIC and users list */
+}
+
+void irc::Request_handler::process_JOIN(const std::string& channel,
+		const std::string& key) {
+	// TODO
 }
 
 void irc::Request_handler::handle_PART(void) {
@@ -569,7 +601,7 @@ void irc::Request_handler::handle_PART(void) {
 
 	/* Search channel */
 	boost::shared_ptr<Channel_info> channel =
-			m_parent->getChannelsDatabase().access(m_argv[0]);
+			Server::getInstance()->getChannelsDatabase().access(m_argv[0]);
 
 	/* Check if channel exist */
 	if (!channel) {
@@ -599,14 +631,38 @@ void irc::Request_handler::handle_PART(void) {
 	m_parent->removeJoin(channel);
 	channel->removeJoin(m_parent->shared_from_this());
 
-	/* Notice users on channel of client PART */
-	m_reply.addPrefix(m_parent->getPrefix());
-	m_reply.CMD_PART(m_argv[0]);
-	channel->writeToAll(m_reply.toString());
+	/* Check if channel is empty */
+	if (channel->getUsersCount() == 0) {
+
+		/* Remove channel from database */
+		Server::getInstance()->getChannelsDatabase().remove(m_argv[0]);
+
+	} else { /* Channel is not empty */
+
+		/* Notice users on channel of client PART */
+		m_reply.addPrefix(m_parent->getPrefix());
+		m_reply.CMD_PART(m_argv[0]);
+		channel->writeToAll(m_reply.toString());
+	}
+}
+
+void irc::Request_handler::process_PART(const std::string& channel) {
+	// TODO
 }
 
 void irc::Request_handler::handle_MODE(void) {
-// TODO
+	// TODO
+}
+
+void irc::Request_handler::process_MODE(const std::string& channel,
+		const std::string& mode, const std::string& limit,
+		const std::string& user, const std::string& banmask) {
+	// TODO
+}
+
+void irc::Request_handler::process_MODE(const std::string& nickname,
+		const std::string& mode) {
+	// TODO
 }
 
 void irc::Request_handler::handle_TOPIC(void) {
@@ -632,7 +688,7 @@ void irc::Request_handler::handle_TOPIC(void) {
 
 	/* Search channel */
 	boost::shared_ptr<Channel_info> channel =
-			m_parent->getChannelsDatabase().access(m_argv[0]);
+			Server::getInstance()->getChannelsDatabase().access(m_argv[0]);
 
 	/* Check if channel exist */
 	if (!channel) {
@@ -705,16 +761,34 @@ void irc::Request_handler::handle_TOPIC(void) {
 	}
 }
 
+void irc::Request_handler::process_TOPIC(const std::string& channel,
+		const std::string& topic) {
+	// TODO
+}
+
 void irc::Request_handler::handle_NAMES(void) {
-// TODO
+	// TODO
+}
+
+void irc::Request_handler::process_NAMES(const std::string& channel) {
+	// TODO
 }
 
 void irc::Request_handler::handle_LIST(void) {
-// TODO
+	// TODO
+}
+
+void irc::Request_handler::process_LIST(const std::string& channel) {
+	// TODO
 }
 
 void irc::Request_handler::handle_INVITE(void) {
-// TODO
+	// TODO
+}
+
+void irc::Request_handler::process_INVITE(const std::string& nickname,
+		const std::string& channel) {
+	// TODO
 }
 
 void irc::Request_handler::handle_KICK(void) {
@@ -740,7 +814,7 @@ void irc::Request_handler::handle_KICK(void) {
 
 	/* Search channel */
 	boost::shared_ptr<Channel_info> channel =
-			m_parent->getChannelsDatabase().access(m_argv[0]);
+			Server::getInstance()->getChannelsDatabase().access(m_argv[0]);
 
 	/* Check if channel exist */
 	if (!channel) {
@@ -767,8 +841,8 @@ void irc::Request_handler::handle_KICK(void) {
 	}
 
 	/* Search user */
-	boost::shared_ptr<Connection> user = m_parent->getUsersDatabase().access(
-			m_argv[1]);
+	boost::shared_ptr<Connection> user =
+			Server::getInstance()->getUsersDatabase().access(m_argv[1]);
 
 	/* Check is user exist and is on the channel */
 	if (!user || m_parent->asJoin(channel) == false) {
@@ -792,48 +866,71 @@ void irc::Request_handler::handle_KICK(void) {
 	channel->writeToAll(m_reply.toString());
 }
 
+void irc::Request_handler::process_KICK(const std::string& channel,
+		const std::string& nickname, const std::string& comment) {
+	// TODO
+}
+
 void irc::Request_handler::handle_VERSION(void) {
-// TODO
+	// TODO
 }
 
 void irc::Request_handler::handle_STATS(void) {
-// TODO
+	// TODO
+}
+
+void irc::Request_handler::process_STATS(const std::string& query) {
+	// TODO
 }
 
 void irc::Request_handler::handle_LINKS(void) {
-// TODO
+	// TODO
+}
+
+void irc::Request_handler::process_LINKS(const std::string& rsvname,
+		const std::string& svmask) {
+	// TODO
 }
 
 void irc::Request_handler::handle_TIME(void) {
-// TODO
+	// TODO
 }
 
 void irc::Request_handler::handle_CONNECT(void) {
-// TODO
+	// TODO
 }
 
 void irc::Request_handler::handle_TRACE(void) {
-// TODO
+	// TODO
 }
 
 void irc::Request_handler::handle_ADMIN(void) {
-// TODO
+	// TODO
 }
 
 void irc::Request_handler::handle_INFO(void) {
-// TODO
+	// TODO
 }
 
 void irc::Request_handler::handle_WHO(void) {
-// TODO
+	// TODO
+}
+
+void irc::Request_handler::process_WHO(const std::string& name,
+		const std::string& op) {
+	// TODO
 }
 
 void irc::Request_handler::handle_WHOIS(void) {
-// TODO
+	// TODO
+}
+
+void irc::Request_handler::process_WHOIS(const std::string& nickname) {
+	// TODO
 }
 
 void irc::Request_handler::handle_WHOAS(void) {
-// TODO
+	// TODO
 }
 
 void irc::Request_handler::handle_NOTICE(void) {
@@ -868,8 +965,8 @@ void irc::Request_handler::handle_NOTICE(void) {
 	}
 
 	/* Search user */
-	boost::shared_ptr<Connection> user = m_parent->getUsersDatabase().access(
-			m_argv[0]);
+	boost::shared_ptr<Connection> user =
+			Server::getInstance()->getUsersDatabase().access(m_argv[0]);
 
 	/* Check if user exist */
 	if (!user) {
@@ -897,10 +994,19 @@ void irc::Request_handler::handle_NOTICE(void) {
 	}
 
 	/* Send message to remote user */
-	m_reply.addPrefix(m_parent->getPrefix());
-	m_reply.CMD_NOTICE(m_argv[0], m_argv[1]);
-	m_parent->write(m_reply.toString());
-	user->write(m_reply.toString());
+	if (user->isReceivingNotices()) {
+
+		/* Craft and send NOTICE */
+		m_reply.addPrefix(m_parent->getPrefix());
+		m_reply.CMD_NOTICE(m_argv[0], m_argv[1]);
+		m_parent->write(m_reply.toString());
+		user->write(m_reply.toString());
+	}
+}
+
+void irc::Request_handler::process_NOTICE(const std::string& nickname,
+		const std::string& message) {
+	// TODO
 }
 
 void irc::Request_handler::handle_PRIVMSG(void) {
@@ -935,8 +1041,8 @@ void irc::Request_handler::handle_PRIVMSG(void) {
 	}
 
 	/* Search user */
-	boost::shared_ptr<Connection> user = m_parent->getUsersDatabase().access(
-			m_argv[0]);
+	boost::shared_ptr<Connection> user =
+			Server::getInstance()->getUsersDatabase().access(m_argv[0]);
 
 	/* Check if user exist */
 	if (user) {
@@ -960,7 +1066,7 @@ void irc::Request_handler::handle_PRIVMSG(void) {
 
 		/* Search channel */
 		boost::shared_ptr<Channel_info> channel =
-				m_parent->getChannelsDatabase().access(m_argv[0]);
+				Server::getInstance()->getChannelsDatabase().access(m_argv[0]);
 
 		/* Check if channel exist */
 		if (channel) {
@@ -994,6 +1100,11 @@ void irc::Request_handler::handle_PRIVMSG(void) {
 		m_reply.CMD_NOTICE(m_argv[0], m_argv[1]);
 		m_parent->write(m_reply.toString());
 	}
+}
+
+void irc::Request_handler::process_PRIVMSG(const std::string& receiver,
+		const std::string& message) {
+
 }
 
 void irc::Request_handler::handle_KILL(void) {
@@ -1030,8 +1141,8 @@ void irc::Request_handler::handle_KILL(void) {
 	}
 
 	/* Search user */
-	boost::shared_ptr<Connection> user = m_parent->getUsersDatabase().access(
-			m_argv[0]);
+	boost::shared_ptr<Connection> user =
+			Server::getInstance()->getUsersDatabase().access(m_argv[0]);
 
 	/* If user is found */
 	if (!user) {
@@ -1052,6 +1163,11 @@ void irc::Request_handler::handle_KILL(void) {
 	m_reply.addPrefix(m_parent->getServername());
 	m_reply.CMD_NOTICE(m_parent->getNickname(), "User connection killed !");
 	m_parent->write(m_reply.toString());
+}
+
+void irc::Request_handler::process_KILL(const std::string& nickname,
+		const std::string& comment) {
+	// TODO
 }
 
 void irc::Request_handler::handle_PING(void) {
@@ -1176,7 +1292,11 @@ void irc::Request_handler::handle_ERROR(void) {
 	m_reply.CMD_NOTICE(m_parent->getServername(), "ERROR: " + m_argv[0]);
 
 	/* Notice all irc ops with notice */
-	m_parent->getUsersDatabase().writeToIrcOp(m_reply.toString());
+	Server::getInstance()->getUsersDatabase().writeToIrcOp(m_reply.toString());
+}
+
+void irc::Request_handler::process_ERROR(const std::string& emessage) {
+	// TODO
 }
 
 void irc::Request_handler::handle_AWAY(void) {
@@ -1212,6 +1332,10 @@ void irc::Request_handler::handle_AWAY(void) {
 		m_reply.RPL_NOWAWAY();
 		m_parent->write(m_reply.toString());
 	}
+}
+
+void irc::Request_handler::process_AWAY(const std::string& message) {
+	// TODO
 }
 
 void irc::Request_handler::handle_REHASH(void) {
@@ -1327,15 +1451,27 @@ void irc::Request_handler::handle_WALLOPS(void) {
 	/* Send message to all IRC ops connected */
 	m_reply.addPrefix(m_parent->getPrefix());
 	m_reply.CMD_WALLOPS(m_argv[0]);
-	m_parent->getUsersDatabase().writeToIrcOp(m_reply.toString());
+	Server::getInstance()->getUsersDatabase().writeToIrcOp(m_reply.toString());
+}
+
+void irc::Request_handler::process_WALLOPS(const std::string& message) {
+	// TODO
 }
 
 void irc::Request_handler::handle_USERHOST(void) {
-// TODO
+	// TODO
+}
+
+void irc::Request_handler::process_USERHOST(const std::string& nickname) {
+	// TODO
 }
 
 void irc::Request_handler::handle_ISON(void) {
-// TODO
+	// TODO
+}
+
+void irc::Request_handler::process_ISON(const std::string& nickname) {
+	// TODO
 }
 
 void irc::Request_handler::send_welcome_msg(void) {
@@ -1361,41 +1497,45 @@ void irc::Request_handler::send_welcome_msg(void) {
 	m_reply.RPL_CUSTOM("003",
 			m_parent->getNickname() + " :This server was created "
 					+ boost::posix_time::to_simple_string(
-							m_parent->getConf().m_since));
+							Server::getInstance()->runSince()));
 	m_parent->write(m_reply.toString());
 	m_reply.flush();
 
 	/* Stats section */
-	if (m_parent->getConf().send_stats) {
+	if (Server::getInstance()->getConfiguration().send_stats) {
 
 		/* Send users stats */
 		m_reply.addPrefix(m_parent->getServername());
-		m_reply.RPL_LUSERCLIENT(m_parent->getUsersDatabase().getUsersCount(),
-				m_parent->getUsersDatabase().getInvisibleUsersCount(), 1);
+		m_reply.RPL_LUSERCLIENT(
+				Server::getInstance()->getUsersDatabase().getUsersCount(),
+				Server::getInstance()->getUsersDatabase().getInvisibleUsersCount(),
+				1);
 		m_parent->write(m_reply.toString());
 		m_reply.flush();
 
 		/* Send irc ops stats */
 		m_reply.addPrefix(m_parent->getServername());
-		m_reply.RPL_LUSEROP(m_parent->getUsersDatabase().getIRCopsCount());
+		m_reply.RPL_LUSEROP(
+				Server::getInstance()->getUsersDatabase().getIRCopsCount());
 		m_parent->write(m_reply.toString());
 		m_reply.flush();
 
 		/* Send channels stats */
 		m_reply.addPrefix(m_parent->getServername());
 		m_reply.RPL_LUSERCHANNELS(
-				m_parent->getChannelsDatabase().getChannelsCount());
+				Server::getInstance()->getChannelsDatabase().getChannelsCount());
 		m_parent->write(m_reply.toString());
 		m_reply.flush();
 
 		/* Send local users stats */
 		m_reply.addPrefix(m_parent->getServername());
-		m_reply.RPL_LUSERME(m_parent->getUsersDatabase().getUsersCount(), 1);
+		m_reply.RPL_LUSERME(
+				Server::getInstance()->getUsersDatabase().getUsersCount(), 1);
 		m_parent->write(m_reply.toString());
 	}
 
 	/* MOTD section */
-	if (m_parent->getConf().send_motd) {
+	if (Server::getInstance()->getConfiguration().send_motd) {
 
 		/* Send MOTD */
 		send_motd();
@@ -1412,7 +1552,8 @@ void irc::Request_handler::send_welcome_msg(void) {
 void irc::Request_handler::send_motd(void) {
 
 	/* Open file */
-	std::ifstream motd_file(m_parent->getConf().motd_filename.c_str());
+	std::ifstream motd_file(
+			Server::getInstance()->getConfiguration().motd_filename.c_str());
 
 	/* Test file open */
 	if (motd_file.is_open()) {
@@ -1451,7 +1592,8 @@ void irc::Request_handler::send_motd(void) {
 
 		/* Send file I/O error message */
 		m_reply.addPrefix(m_parent->getServername());
-		m_reply.ERR_FILEERROR("open", m_parent->getConf().motd_filename);
+		m_reply.ERR_FILEERROR("open",
+				Server::getInstance()->getConfiguration().motd_filename);
 		m_parent->write(m_reply.toString());
 	}
 }
