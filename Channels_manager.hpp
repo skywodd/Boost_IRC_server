@@ -5,12 +5,9 @@
  * @version 1.0
  * @see http://skyduino.wordpress.com/
  *
- * @section intro_sec Introduction
- * This class is designed to manage channels database.\n
- * \n
  * Please report bug to <skywodd at gmail.com>
  *
- * @section licence_sec Licence
+ * @section licence_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
  *  the Free Software Foundation, either version 3 of the License, or\n
@@ -37,6 +34,8 @@
 
 /**
  * @namespace irc
+ *
+ * Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
@@ -47,24 +46,44 @@ class Connection;
 
 /**
  * @class Channels_manager
+ *
+ * This class is designed to manage channels database.\n
+ * This class allow developer to add, remove and access to channels informations in the database.\n
+ * \n
+ * Add, remove and access operations are made using channel name.\n
+ * Remove operations can also be made using intelligent pointer.\n
+ * \n
+ * This class keep up-to-date a counter of channels currently into the database.\n
+ * Each channel name are associated to a channel informations intelligent pointer.\n
+ * \n
+ * Channels broadcast operation are NOT handled by this class (see Channel_info instead).
  */
 class Channels_manager: private boost::noncopyable {
 protected:
-	/** Channel database: channel name as keys, channel informations as values */
+	/** Channels database: channel name as keys, channel informations as values */
 	std::map<std::string, boost::shared_ptr<Channel_info> > m_database;
 
-	/** Number of channels currently in the database */
+	/** Number of channels currently into the database */
 	int m_nb_channels;
 
 	/** Maximum number of channels of the database */
 	int m_nb_channels_limit;
 
-	/** Server configuration */
+	/** Default channels configuration */
 	const Configuration& m_configuration;
+
+	/**
+	 * Functor : Search channel in the database by pointer
+	 *
+	 * @param channel Pointer to the channel to search
+	 * @param input Pair retrieved from the database to check against "channel"
+	 */
+	static bool search_channel(boost::shared_ptr<Channel_info> channel,
+			std::pair<std::string, boost::shared_ptr<Channel_info> > input);
 
 public:
 	/**
-	 * Instantiate a new Channels_manager object
+	 * Instantiate a new channels database
 	 *
 	 * @param configuration Configuration of database
 	 */
@@ -78,9 +97,9 @@ public:
 	~Channels_manager(void);
 
 	/**
-	 * Get the number of channels currently in the database
+	 * Get the number of channels currently into the database
 	 *
-	 * @return The number of channels in the database
+	 * @return The number of channels into the database
 	 */
 	int getChannelsCount(void) const;
 
@@ -99,21 +118,29 @@ public:
 	boost::shared_ptr<Channel_info> add(const std::string& name);
 
 	/**
-	 * Remove channel from the database
+	 * Remove a channel from the database
 	 *
 	 * @param name Name of the channel to remove
 	 */
 	void remove(const std::string& name);
 
 	/**
+	 * Remove a channel from the database
+	 *
+	 * @param channel Pointer to the channel to remove
+	 */
+	void remove(boost::shared_ptr<Channel_info> channel);
+
+	/**
 	 * Access to a channel in the database
 	 *
 	 * @param name Name of the channel to access
-	 * @return Pointer to the channel informations, or NULL if not exist
+	 * @return Intelligent pointer to the channel informations or NULL if not found
 	 */
 	boost::shared_ptr<Channel_info> access(const std::string& name);
+
 };
 
-}
+} /* namespace irc */
 
 #endif /* CHANNELS_MANAGER_H_ */
