@@ -5,12 +5,9 @@
  * @version 1.0
  * @see http://skyduino.wordpress.com/
  *
- * @section intro_sec Introduction
- * This class is designed to parse and generate IRC prefix.\n
- * \n
  * Please report bug to <skywodd at gmail.com>
  *
- * @section licence_sec Licence
+ * @section licence_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
  *  the Free Software Foundation, either version 3 of the License, or\n
@@ -34,24 +31,34 @@
 
 /**
  * @namespace irc
+ *
+ * Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
 /**
  * @class Prefix_generator
+ *
+ * This class is designed to craft IRC prefix.\n
+ * \n
+ * This class can generate four types of IRC prefix :\n
+ * * Single nickname prefix\n
+ * * Nickname and user name prefix
+ * * Full user prefix (nickname, user name and server name)\n
+ * * Server prefix
  */
 class Prefix_generator {
 protected:
-	/** Output prefix string */
+	/** Output prefix string stream */
 	std::ostringstream m_oss;
 
 public:
 	/**
-	 * Create and generate a new IRC prefix
+	 * Instantiate a new generator and craft the IRC prefix
 	 *
 	 * @param nickname Nickname of user
-	 * @param username Username of user
-	 * @param hostname Hostname of user
+	 * @param username User name of user
+	 * @param hostname Host name of user or server domain
 	 */
 	Prefix_generator(const std::string& nickname, const std::string& username =
 			"", const std::string& hostname = "");
@@ -64,35 +71,43 @@ public:
 	virtual ~Prefix_generator(void);
 
 	/**
-	 * Get the prefix in string format
+	 * Get the computed prefix in string format
 	 *
-	 * @return The prefix in string format
+	 * @return The computed prefix in string format
 	 */
-	const std::string& toString(void);
+	const std::string toString(void);
 };
 
 /**
  * @class Prefix_parser
+ *
+ * This class is designed to parse IRC prefix.\n
+ * \n
+ * This class can parse four types of IRC prefix :\n
+ * * Single nickname prefix\n
+ * * Nickname and user name prefix\n
+ * * Full user prefix (nickname, user name and server name)\n
+ * * Server prefix
  */
 class Prefix_parser {
 protected:
-	/** Input prefix string */
+	/** Input prefix string stream */
 	std::istringstream m_iss;
 
-	/** Prefix : nick name */
+	/** Prefix : nick name field */
 	std::string m_nickname;
 
-	/** Prefix : user name */
+	/** Prefix : user name field */
 	std::string m_username;
 
-	/** Prefix : host name */
+	/** Prefix : host name field or server domain field */
 	std::string m_hostname;
 
 public:
 	/**
-	 * Instantiate a new IRC prefix parser object
+	 * Instantiate a new parser and process input line
 	 *
-	 * @param raw_input Raw prefix line input
+	 * @param raw_input The raw prefix line input
 	 */
 	Prefix_parser(const std::string& raw_input);
 
@@ -104,25 +119,26 @@ public:
 	virtual ~Prefix_parser(void);
 
 	/**
-	 * Get the nickname of prefix
+	 * Get the nickname field of the prefix
 	 *
-	 * @return The nickname of prefix
+	 * @return The nickname field of the prefix
 	 */
 	const std::string& getNickname(void) const;
 
 	/**
-	 * Get the username of prefix
+	 * Get the user name field of the prefix
 	 *
-	 * @return The username of prefix
+	 * @return The user name field of the prefix
 	 */
 	const std::string& getUsername(void) const;
 
 	/**
-	 * Get the hostname of prefix
+	 * Get the host name field of the prefix
 	 *
-	 * @return The hostname of prefix
+	 * @return The host name field of the prefix
 	 */
 	const std::string& getHostname(void) const;
+
 };
 
 } /* namespace irc */

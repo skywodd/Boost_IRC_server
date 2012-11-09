@@ -22,27 +22,36 @@ irc::Prefix_generator::Prefix_generator(const std::string& nickname,
 		const std::string& username, const std::string& hostname) :
 		m_oss() {
 
-	/* Generate prefix string */
-	m_oss << nickname;
-	if (username != "")
-		m_oss << "!" << username;
-	if (hostname != "")
-		m_oss << "@" << hostname;
+	/* Generate the prefix string */
+	if (nickname != "") {
+
+		/* User prefix */
+		m_oss << nickname;
+		if (username != "")
+			m_oss << "!" << username;
+		if (hostname != "")
+			m_oss << "@" << hostname;
+
+	} else {
+
+		/* Server prefix */
+		m_oss << hostname;
+	}
 }
 
 irc::Prefix_generator::~Prefix_generator(void) {
 }
 
-const std::string& irc::Prefix_generator::toString(void) {
+const std::string irc::Prefix_generator::toString(void) {
 
-	/* Return the generated prefix string */
+	/* Return the computed prefix string */
 	return m_oss.str();
 }
 
 irc::Prefix_parser::Prefix_parser(const std::string& raw_input) :
 		m_iss(raw_input) {
 
-	/* Parse prefix */
+	/* Parse the input prefix string */
 	std::getline(m_iss, m_nickname, '!');
 	std::getline(m_iss, m_username, '@');
 	std::getline(m_iss, m_hostname);
@@ -53,18 +62,18 @@ irc::Prefix_parser::~Prefix_parser(void) {
 
 const std::string& irc::Prefix_parser::getNickname(void) const {
 
-	/* Return the nickname of the prefix */
+	/* Return the nickname field of the prefix */
 	return m_nickname;
 }
 
 const std::string& irc::Prefix_parser::getUsername(void) const {
 
-	/* Return the username of the prefix */
+	/* Return the user name field of the prefix */
 	return m_username;
 }
 
 const std::string& irc::Prefix_parser::getHostname(void) const {
 
-	/* Return the hostname of the prefix */
+	/* Return the host name field of the prefix */
 	return m_hostname;
 }
