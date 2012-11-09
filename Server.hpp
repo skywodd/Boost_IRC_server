@@ -1,16 +1,13 @@
 /**
  * @file Server.hpp
- * @brief Single-threaded server class
+ * @brief Single-threaded TCP server class
  * @author SkyWodd
  * @version 1.0
  * @see http://skyduino.wordpress.com/
  *
- * @section intro_sec Introduction
- * This class is designed to handle incoming connections.\n
- * \n
  * Please report bug to <skywodd at gmail.com>
  *
- * @section licence_sec Licence
+ * @section licence_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
  *  the Free Software Foundation, either version 3 of the License, or\n
@@ -23,9 +20,6 @@
  * \n
  *  You should have received a copy of the GNU General Public License\n
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.\n
- *
- * @section other_sec Others notes and compatibility warning
- * @warning Require Boost 1_51 or more recent !
  */
 
 #ifndef SERVER_H_
@@ -41,6 +35,8 @@
 
 /**
  * @namespace irc
+ *
+ * Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
@@ -50,16 +46,23 @@ class Configuration;
 
 /**
  * @class Server
+ *
+ * This class handle all incoming TCP connection on the specified port and bind address.\n
+ * This class does NOT handle any IRC communications, only incoming TCP connections.\n
  */
 class Server: private boost::noncopyable {
 protected:
 	/** IO_service used to perform asynchronous operations */
 	boost::asio::io_service m_io_service;
 
+#if BOOST_VERSION > 104700
 	/** Signal_set used to handle process quit notifications */
 	boost::asio::signal_set m_signals;
+#else
+#warning "You need Boost 1.47 (at least) to have signals support !"
+#endif
 
-	/** Acceptor used to listen for incoming connections */
+	/** Acceptor used to listen of incoming connections */
 	boost::asio::ip::tcp::acceptor m_acceptor;
 
 	/** Server configuration */
@@ -71,6 +74,12 @@ protected:
 	/** Channels database */
 	Channels_manager m_channels_database;
 
+	/** Date / time of the server startup */
+	boost::posix_time::ptime m_since;
+
+	/** Server instance */
+	static Server* m_instance;
+
 	/**
 	 * Start an asynchronous accept operation
 	 */
@@ -79,20 +88,31 @@ protected:
 	/**
 	 * Handle completion of an asynchronous accept operation
 	 *
-	 * @param new_connection Pointer to the connection used for accept
-	 * @param error Error code
+	 * @param new_connection Intelligent pointer to the connection used for accept
+	 * @param error Error code (if any)
 	 */
 	void handle_accept(boost::shared_ptr<Connection> new_connection, const boost::system::error_code& error);
 
 public:
 	/**
-	 * Instanciate a new Server object
+	 * Instantiate a new Server object
+	 *
+	 * @warning Require Boost 1_47 (at least) to support signals handling !
+	 * @remarks If signals support is not available compilation will not fail but signals support will be disable.
+	 * @pre This class store a pointer to itself to work ! ONLY ONE instance of Server class MUST be created !
 	 *
 	 * @param address Address to bind the server on
 	 * @param port Port to listen on
 	 * @param configuration Server configuration to use
 	 */
 	explicit Server(const std::string& address, const std::string& port, Configuration& configuration);
+
+	/**
+	 * Get the pointer to the server instance
+	 *
+	 * @return The pointer to the server instance
+	 */
+	Server* getInstance(void) const;
 
 	/**
 	 * Destructor
@@ -102,14 +122,14 @@ public:
 	virtual ~Server(void);
 
 	/**
-	 * Start IO_service loops to process incoming connections
+	 * Start IO_service to process incoming connections
 	 *
 	 * @remark Blocking function
 	 */
 	void run(void);
 
 	/**
-	 * Handle kill request (shutdown server)
+	 * Handle kill request (safe & clean server shutdown)
 	 */
 	void stop(void);
 
@@ -119,8 +139,9 @@ public:
 	 * @return Startup time in Posix_time format
 	 */
 	boost::posix_time::ptime runSince(void) const;
+
 };
 
-}
+} /* namespace irc */
 
 #endif /* SERVER_H_ */

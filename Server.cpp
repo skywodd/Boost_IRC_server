@@ -30,25 +30,22 @@ irc::Server::Server(const std::string& address, const std::string& port,
 		Configuration& configuration) :
 		m_io_service(), m_signals(m_io_service), m_acceptor(m_io_service), m_configuration(
 				configuration), m_users_database(m_configuration), m_channels_database(
-				m_configuration) {
+				m_configuration), m_since(boost::posix_time::second_clock::local_time()), m_instance(this) {
 
-	/* Creating server instance */
-	configuration.m_since = boost::posix_time::second_clock::local_time();
-	debug::DEBUG_LOG("Startup time", m_configuration.m_since);
+	/* Creating a new server instance */
 	debug::DEBUG_LOG(m_configuration.svdomain, "Creating server instance ...");
+	debug::DEBUG_LOG("Startup time", boost::posix_time::to_simple_string(m_since));
 
 	/* Register all signals that indicate when the server should exit */
 #if BOOST_VERSION > 104700
 	debug::DEBUG_LOG(m_configuration.svdomain,
-			"Registering signal handler ...");
+			"Registering signals handler ...");
 	m_signals.add(SIGINT);
 	m_signals.add(SIGTERM);
 #ifdef SIGQUIT
 	m_signals.add(SIGQUIT);
 #endif
 	m_signals.async_wait(boost::bind(&Server::stop, this));
-#else
-#warning "You need Boost 1.47 (at least) to have signals support !"
 #endif
 
 	/* Resolve and bind TCP address / port for incoming connection accept */
@@ -63,7 +60,7 @@ irc::Server::Server(const std::string& address, const std::string& port,
 	m_acceptor.bind(endpoint);
 	m_acceptor.listen();
 
-	/* Start accepting new incoming connections */
+	/* Start accepting incoming connections */
 	debug::DEBUG_LOG(m_configuration.svdomain, "Start listening ...");
 	start_accept();
 }
@@ -75,9 +72,15 @@ irc::Server::~Server(void) {
 			"Destroying server instance ...");
 }
 
+irc::Server* irc::Server::getInstance(void) const {
+
+	/* Return the pointer to the current instance */
+	return m_instance;
+}
+
 void irc::Server::start_accept(void) {
 
-	/* Creating a new connection pointer to handle accept at callback */
+	/* Create a new connection pointer to handle accept at callback */
 	debug::DEBUG_LOG(m_configuration.svdomain,
 			"Waiting for incoming connection ...");
 	boost::shared_ptr<Connection> new_connection = Connection::create(
@@ -93,24 +96,24 @@ void irc::Server::start_accept(void) {
 void irc::Server::handle_accept(boost::shared_ptr<Connection> new_connection,
 		const boost::system::error_code& error) {
 
-	/* Processing the new incoming connection */
+	/* Process the new incoming connection */
 	if (!error) {
 
 		/* If no error, start connection */
 		new_connection->start();
 
-		/* Check for user limit */
+		/* Check for users count limit */
 		if (m_users_database.getUsersCount()
 				> m_users_database.getUsersCountLimit()) {
 
-			/* No more place in users database */
+			/* No more place in the users database */
 			debug::DEBUG_LOG(m_configuration.svdomain,
 					"Incoming connection dropped, no more place");
-			new_connection->close(); /* Force socket close */
+			new_connection->close();
 
 		} else { /* Users database is not full */
 
-			/* Add connection to users database */
+			/* Add connection to the users database */
 			debug::DEBUG_LOG(m_configuration.svdomain,
 					"Incoming connection added to database");
 			m_users_database.add(new_connection);
@@ -120,7 +123,7 @@ void irc::Server::handle_accept(boost::shared_ptr<Connection> new_connection,
 
 		/* If error, drop debug message */
 		debug::DEBUG_LOG(m_configuration.svdomain,
-				"Error during processing of the incoming connection !");
+				"Error during processing of incoming connection !");
 	}
 
 	/* Start accepting another new connection */
@@ -148,4 +151,10 @@ void irc::Server::stop(void) {
 
 	/* Stop IO_service manager */
 	m_io_service.stop();
+}
+
+boost::posix_time::ptime irc::Server::runSince(void) const {
+
+	/* Return the server startup time */
+	return m_since;
 }
