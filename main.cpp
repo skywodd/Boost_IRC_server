@@ -1,20 +1,24 @@
 /**
  * @file main.cpp
- * @brief Simple but powerfull IRC server written in C++ using Boost libraries
+ * @brief Simple but powerful IRC server written in C++ using Boost library
  * @mainpage 
  * @author SkyWodd
  * @version 1.0
  * @see http://skyduino.wordpress.com/
  *
  * @section intro_sec Introduction
- * This program is a simple but powerfull IRC server written in C++ using Boost libraries.\n
+ * This program is a simple but powerful IRC server written in C++ using Boost libraries.\n
  * The code in fully portable between linux, mac and windows !\n
- * Please also keep in mind that this project is a school project, not a final product !\n
+ * \n
+ * Please keep in mind that this project is a school project, not a final product !\n
  * Some of the IRC features are not implemented, and will not be (code & forget project).\n
  * \n
  * Please report bug to <skywodd at gmail.com>
  *
- * @section licence_sec Licence
+ * @remarks This implementation of IRC server does NOT support server-to-server communications.
+ * @remarks Take a look at the README.md file for details about implemented IRC commands.
+ *
+ * @section licence_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
  *  the Free Software Foundation, either version 3 of the License, or\n
@@ -48,12 +52,17 @@ int main(int argc, char** argv) {
 
 		/* Check command line arguments */
 		if (argc != 3) {
+
+			/* Drop usage message */
 			std::cerr << "Usage: Boost_IRC_server <address> <port>\n"
 					<< std::endl;
+
+			/* Return with error */
 			return 1;
 		}
 
 		/* Fill configuration structure */
+		// TODO Use Boost configuration library
 		irc::Configuration configuration;
 		configuration.svdomain = "irc.local";
 		configuration.is_password_protected = false;
@@ -79,7 +88,7 @@ int main(int argc, char** argv) {
 		configuration.no_outside_msg = true;
 		configuration.is_moderated = false;
 
-		/* Initialise the server */
+		/* Initialize the server */
 		irc::Server server(argv[1], argv[2], configuration);
 
 		/* Start the server */
