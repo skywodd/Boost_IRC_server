@@ -5,12 +5,9 @@
  * @version 1.0
  * @see http://skyduino.wordpress.com/
  *
- * @section intro_sec Introduction
- * This structure is designed to store default configuration of server runtime.\n
- * \n
  * Please report bug to <skywodd at gmail.com>
  *
- * @section licence_sec Licence
+ * @section licence_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
  *  the Free Software Foundation, either version 3 of the License, or\n
@@ -33,28 +30,32 @@
 #include <string>
 #include <set>
 #include <map>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 /**
  * @namespace irc
+ *
+ * Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
 /**
  * @struct Configuration
+ *
+ * This structure is designed to store default configuration values of the server runtime.
  */
 struct Configuration {
+
 	/* ----- Server ----- */
 	/** Server domain name */
 	std::string svdomain;
 
-	/** True if server is password protected */
+	/** True if the server is password protected */
 	bool is_password_protected;
 
 	/** Server password */
 	std::set<std::string> server_password;
 
-	/** IRC op user / password */
+	/** IRC ops user / password */
 	std::map<std::string, std::string> server_ircop;
 
 	/** Send MOTD after connection */
@@ -85,7 +86,7 @@ struct Configuration {
 	/** Limit of joined channel */
 	int nb_join_limit;
 
-	/** True if user is IRC op by default */
+	/** True if user is IRC ops by default */
 	bool is_ircop;
 
 	/** True if user can receive wallops messages by default */
@@ -122,11 +123,8 @@ struct Configuration {
 	/** True if the channel is moderated by default */
 	bool is_moderated;
 
-	/* ----- Others ----- */
-	/** Date/time of server startup */
-	boost::posix_time::ptime m_since;
 };
 
-}
+} /* namespace irc */
 
 #endif /* CONFIGURATION_H_ */
