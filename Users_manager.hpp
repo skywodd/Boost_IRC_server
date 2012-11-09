@@ -5,12 +5,11 @@
  * @version 1.0
  * @see http://skyduino.wordpress.com/
  *
- * @section intro_sec Introduction
- * This class is designed to manage users database.\n
- * \n
  * Please report bug to <skywodd at gmail.com>
  *
- * @section licence_sec Licence
+ * @todo Users research using nickmask expression support
+ *
+ * @section license_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
  *  the Free Software Foundation, either version 3 of the License, or\n
@@ -37,6 +36,8 @@
 
 /**
  * @namespace irc
+ *
+ * Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
@@ -46,31 +47,43 @@ class Configuration;
 
 /**
  * @class Users_manager
+ *
+ * This class is designed to manage users database.\n
+ * This class allow developer to add, remove and access to users informations in the database.\n
+ * \n
+ * Add and remove operations are made using intelligent pointers.\n
+ * Access operations are made using nickname.\n
+ * \n
+ * This class keep up-to-date a counter of users currently into the database.\n
+ * This class can also count the number of IRC ops and invisible users.\n
+ * \n
+ * Broadcast operations (to all users or only to IRC ops) are handled by this class.
  */
 class Users_manager: private boost::noncopyable {
 protected:
 	/** Users database */
 	std::set<boost::shared_ptr<Connection> > m_database;
 
-	/** Number of users currently in the database */
+	/** Number of users currently into the database */
 	int m_nb_users;
 
 	/** Maximum number of users of the database */
 	int m_nb_users_limit;
 
 	/**
-	 * Search user informations in database by nickname
+	 * Functor : Search user in the database by nickname
 	 *
 	 * @param cur_user Pointer to the user informations to test
 	 * @param nickname Nickname to search in the database
 	 * @return True if the nickname match, false otherwise
 	 */
-	static bool find_by_nickname(boost::shared_ptr<Connection> cur_user,
+	static bool find_by_nickname(boost::shared_ptr<Connection> user,
 			std::string& nickname);
 
 	/**
-	 * Send wallops message to IRC op (if user is receiving wallops)
+	 * Functor : Send wallops message to user
 	 *
+	 * @remarks Message will be sent to user only if user is IRC op and have "receive wallops" set to true.
 	 * @param user Pointer to the user to wallops
 	 * @param message Wallops message to send
 	 */
@@ -78,20 +91,20 @@ protected:
 			std::string& message);
 
 	/**
-	 * Send notice message to user (if user is receiving notice)
+	 * Functor : Send notice message to user
 	 *
+	 * @remarks Message will be sent to user only if user have "receive notice" set to true.
 	 * @param user Pointer to the user to notice
-	 * @param message Wallops message to send
+	 * @param message Notice message to send
 	 */
 	static void send_notice(boost::shared_ptr<Connection> user,
 			std::string& message);
 
 public:
-
 	/**
 	 * Instantiate a new users database
 	 *
-	 * @param configuration Database configuration
+	 * @param configuration Database configuration to use
 	 */
 	explicit Users_manager(const Configuration& configuration);
 
@@ -103,23 +116,23 @@ public:
 	~Users_manager(void);
 
 	/**
-	 * Get the number of users currently in the database
+	 * Get the number of users currently into the database
 	 *
-	 * @return The number of users currently in the database
+	 * @return The number of users currently into the database
 	 */
 	int getUsersCount(void) const;
 
 	/**
-	 * Get the number of invisible users in the database
+	 * Get the number of invisible users into the database
 	 *
-	 * @return The number of invisible users in the database
+	 * @return The number of invisible users into the database
 	 */
 	int getInvisibleUsersCount(void) const;
 
 	/**
-	 * Get the number of IRC ops in the database
+	 * Get the number of IRC ops into the database
 	 *
-	 * @return The number of IRC ops in the database
+	 * @return The number of IRC ops into the database
 	 */
 	int getIRCopsCount(void) const;
 
@@ -131,36 +144,36 @@ public:
 	int getUsersCountLimit(void) const;
 
 	/**
-	 * Add an user to the database
+	 * Add an user into the database
 	 *
-	 * @param user Pointer to the informations about the user to add
+	 * @param user Intelligent pointer to the user to add into the database
 	 */
 	void add(boost::shared_ptr<Connection> user);
 
 	/**
 	 * Remove an user from the database
 	 *
-	 * @param user Pointer to the informations about the user to remove
+	 * @param user Intelligent pointer to the user to remove from the database
 	 */
 	void remove(boost::shared_ptr<Connection> user);
 
 	/**
 	 * Access to the informations about an user
 	 *
-	 * @param nickname Nickname of the user to search & retrieve from the database
-	 * @return Pointer to the informations about the user, or NULL if not exist
+	 * @param nickname Nickname of the user to retrieve from the database
+	 * @return An intelligent pointer to the user or NULL if not found
 	 */
 	boost::shared_ptr<Connection> access(const std::string& nickname);
 
 	/**
-	 * Write data to all users in the database (wall message)
+	 * Send data to all users in the database (wall message)
 	 *
 	 * @param buffer Data to send to all users
 	 */
 	void writeToAll(const std::string& buffer);
 
 	/**
-	 * Write data to all IRC ops in the database (wallops message)
+	 * Send data to all IRC ops in the database (wallops message)
 	 *
 	 * @param buffer Data to send to all IRC ops
 	 */
@@ -168,6 +181,6 @@ public:
 
 };
 
-}
+} /* namespace irc */
 
 #endif /* USER_MANAGER_H_ */
