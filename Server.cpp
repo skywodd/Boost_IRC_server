@@ -26,6 +26,9 @@
 #include "Reply_generator.hpp"
 #include "Debug_log.hpp"
 
+/* Instance initialization */
+irc::Server* irc::Server::m_instance = NULL;
+
 irc::Server::Server(const std::string& address, const std::string& port,
 		Configuration& configuration) :
 		m_io_service(), m_signals(m_io_service), m_acceptor(m_io_service), m_configuration(
@@ -34,7 +37,6 @@ irc::Server::Server(const std::string& address, const std::string& port,
 
 	/* Creating a new server instance */
 	debug::DEBUG_LOG(m_configuration.svdomain, "Creating server instance ...");
-	m_instance = this;
 	debug::DEBUG_LOG("Startup time",
 			boost::posix_time::to_simple_string(m_since));
 
@@ -74,10 +76,41 @@ irc::Server::~Server(void) {
 			"Destroying server instance ...");
 }
 
+irc::Server* irc::Server::createInstance(const std::string& address,
+		const std::string& port, Configuration& configuration) {
+
+	/* Check if another instance already exist */
+	if (m_instance == NULL) {
+
+		/* Create a new instance */
+		m_instance = new Server(address, port, configuration);
+
+	} else { /* Instance overwrite */
+
+		/* Drop error message */
+		std::cerr << "[WARNING] Trying to overwrite Server instance !"
+				<< std::endl;
+	}
+
+	/* Return the pointer to the current instance */
+	return m_instance;
+}
+
 irc::Server* irc::Server::getInstance(void) {
 
 	/* Return the pointer to the current instance */
 	return m_instance;
+}
+
+void irc::Server::killInstance(void) {
+
+	/* Check if instance exist */
+	if (m_instance != NULL) {
+
+		/* Delete instance */
+		delete m_instance;
+		m_instance = NULL;
+	}
 }
 
 void irc::Server::start_accept(void) {

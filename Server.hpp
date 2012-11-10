@@ -94,6 +94,23 @@ protected:
 	void handle_accept(boost::shared_ptr<Connection> new_connection,
 			const boost::system::error_code& error);
 
+	/**
+	 * Instantiate a new Server object
+	 *
+	 * @param address Address to bind the server on
+	 * @param port Port to listen on
+	 * @param configuration Server configuration to use
+	 */
+	explicit Server(const std::string& address, const std::string& port,
+			Configuration& configuration);
+
+	/**
+	 * Destructor
+	 *
+	 * @remarks Ready for overload
+	 */
+	virtual ~Server(void);
+
 public:
 	/**
 	 * Instantiate a new Server object
@@ -106,8 +123,8 @@ public:
 	 * @param port Port to listen on
 	 * @param configuration Server configuration to use
 	 */
-	explicit Server(const std::string& address, const std::string& port,
-			Configuration& configuration);
+	static Server* createInstance(const std::string& address,
+			const std::string& port, Configuration& configuration);
 
 	/**
 	 * Get the pointer to the server instance
@@ -117,11 +134,9 @@ public:
 	static Server* getInstance(void);
 
 	/**
-	 * Destructor
-	 *
-	 * @remarks Ready for overload
+	 * Destroy the Server instance
 	 */
-	virtual ~Server(void);
+	static void killInstance(void);
 
 	/**
 	 * Start IO_service to process incoming connections

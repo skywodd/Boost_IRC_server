@@ -89,10 +89,13 @@ int main(int argc, char** argv) {
 		configuration.is_moderated = false;
 
 		/* Initialize the server */
-		irc::Server server(argv[1], argv[2], configuration);
+		irc::Server* server = irc::Server::createInstance(argv[1], argv[2], configuration);
 
 		/* Start the server */
-		server.run();
+		server->run();
+
+		/* Kill the server */
+		server->killInstance();
 
 	} catch (std::exception& e) { /* Catch exception */
 		std::cerr << "[ERROR] Got exception : " << e.what() << std::endl;
