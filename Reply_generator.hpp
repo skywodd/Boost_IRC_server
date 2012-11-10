@@ -5,12 +5,9 @@
  * @version 1.0
  * @see http://skyduino.wordpress.com/
  *
- * @section intro_sec Introduction
- * This class is designed to craft reply string in IRC format.\n
- * \n
  * Please report bug to <skywodd at gmail.com>
  *
- * @section licence_sec Licence
+ * @section licence_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
  *  the Free Software Foundation, either version 3 of the License, or\n
@@ -41,6 +38,12 @@ namespace irc {
 
 /**
  * @class Reply_generator
+ *
+ * This class is designed to craft various IRC reply / command string.\n
+ * All reply can be prefixed with a prefix (see Prefix_wrapper.hpp for details).\n
+ * \n
+ * This class only generate string, all the processing is done by the request handler !\n
+ * This class also generate random ping seed for PING / PONG commands.
  */
 class Reply_generator {
 protected:
@@ -75,6 +78,7 @@ public:
 	/**
 	 * Add prefix to the reply string
 	 *
+	 * @warning Need to be re-do after all flush() call !
 	 * @param prefix Prefix to add before the formated reply string
 	 */
 	void addPrefix(const std::string& prefix);
@@ -162,9 +166,9 @@ public:
 			const std::string& username, const std::string& hostname,
 			const std::string& realname);
 	void RPL_ENDOFWHOAS(const std::string& nickname);
-	void RPL_LISTSTART(void); // WTF no params ?
-	void RPL_LIST(const std::string& chan_name, const bool is_visible,
-			const std::string& topic); // WTF is <# visible>
+	void RPL_LISTSTART(void);
+	void RPL_LIST(const std::string& chan_name, const int visible_users,
+			const std::string& topic);
 	void RPL_LISTEND(void);
 	void RPL_CHANNELMODEIS(const std::string& chan_name,
 			const std::string& mode, const std::string& params);
@@ -263,6 +267,7 @@ public:
 
 	/* ----- SPECIAL ----- */
 	void RPL_CUSTOM(const std::string& number, const std::string& payload);
+
 };
 
 } /* namespace irc */

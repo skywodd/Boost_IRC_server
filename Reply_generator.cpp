@@ -422,9 +422,9 @@ void irc::Reply_generator::RPL_LISTSTART(void) {
 }
 
 void irc::Reply_generator::RPL_LIST(const std::string& chan_name,
-		const bool is_visible, const std::string& topic) {
-	// <# visible> -> WTF!?
-	m_oss << "322 " << chan_name << " :" << topic << "\r\n";
+		int visible_users, const std::string& topic) {
+	m_oss << "322 " << chan_name << " " << visible_users << " :" << topic
+			<< "\r\n";
 }
 
 void irc::Reply_generator::RPL_LISTEND(void) {
