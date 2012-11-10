@@ -28,6 +28,7 @@
 /* Dependencies */
 #include <cstddef>
 #include <string>
+#include <vector>
 #include <set>
 #include <map>
 
@@ -123,6 +124,19 @@ struct Configuration {
 	/** True if the channel is moderated by default */
 	bool is_moderated;
 
+	/* ----- Administrator info ----- */
+	/** Administrator location (line 1) */
+	std::string admin_location_1;
+
+	/** Administrator location (line 2) */
+	std::string admin_location_2;
+
+	/** Administrator email */
+	std::string admin_mail;
+
+	/* ----- Program info ----- */
+	/** Server informations */
+	std::vector<std::string> server_infos;
 };
 
 } /* namespace irc */

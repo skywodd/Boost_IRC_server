@@ -87,6 +87,13 @@ int main(int argc, char** argv) {
 		configuration.topic_setby_op_only = true;
 		configuration.no_outside_msg = true;
 		configuration.is_moderated = false;
+		configuration.admin_location_1 = "John doe";
+		configuration.admin_location_2 = "42 the answer street, God city";
+		configuration.admin_mail = "john.doe@example.com";
+		configuration.server_infos.push_back("IRC server created by SkyWodd");
+		configuration.server_infos.push_back("Implemented most of the RFC1459 in local-only network");
+		configuration.server_infos.push_back("Current version 1.0 - beta stage");
+		configuration.server_infos.push_back(std::string("Compiled on ") + __DATE__ + " at " + __TIME__);
 
 		/* Initialize the server */
 		irc::Server* server = irc::Server::createInstance(argv[1], argv[2], configuration);
