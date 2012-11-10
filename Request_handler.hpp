@@ -71,7 +71,6 @@ protected:
 	void handle_OPER(void);
 	void process_OPER(const std::string& username, const std::string& password);
 	void handle_QUIT(void);
-	void process_QUIT(const std::string& message);
 	void handle_SQUIT(void);
 	void handle_JOIN(void);
 	void process_JOIN(const std::string& channel, const std::string& key);
@@ -89,14 +88,15 @@ protected:
 	void handle_LIST(void);
 	void process_LIST(const std::string& channel);
 	void handle_INVITE(void);
-	void process_INVITE(const std::string& nickname, const std::string& channel);
+	void process_INVITE(const std::string& nickname,
+			const std::string& channel);
 	void handle_KICK(void);
-	void process_KICK(const std::string& channel, const std::string& nickname, const std::string& comment);
+	void process_KICK(const std::string& channel, const std::string& nickname,
+			const std::string& comment);
 	void handle_VERSION(void);
 	void handle_STATS(void);
 	void process_STATS(const std::string& query);
 	void handle_LINKS(void);
-	void process_LINKS(const std::string& rsvname, const std::string& svmask);
 	void handle_TIME(void);
 	void handle_CONNECT(void);
 	void handle_TRACE(void);
@@ -106,9 +106,10 @@ protected:
 	void process_PRIVMSG(const std::string& receiver,
 			const std::string& message);
 	void handle_NOTICE(void);
-	void process_NOTICE(const std::string& nickname, const std::string& message);
+	void process_NOTICE(const std::string& nickname,
+			const std::string& message);
 	void handle_WHO(void);
-	void process_WHO(const std::string& name, const std::string& op);
+	void process_WHO(const std::string& name, const bool op);
 	void handle_WHOIS(void);
 	void process_WHOIS(const std::string& nickmask);
 	void handle_WHOAS(void);
@@ -117,7 +118,6 @@ protected:
 	void handle_PING(void);
 	void handle_PONG(void);
 	void handle_ERROR(void);
-	void process_ERROR(const std::string& emessage);
 	void handle_AWAY(void);
 	void process_AWAY(const std::string& message);
 	void handle_REHASH(void);
@@ -127,9 +127,7 @@ protected:
 	void handle_WALLOPS(void);
 	void process_WALLOPS(const std::string& message);
 	void handle_USERHOST(void);
-	void process_USERHOST(const std::string& nickname);
 	void handle_ISON(void);
-	void process_ISON(const std::string& nickname);
 
 	/* ----- Special functions ----- */
 	void send_welcome_msg(void);
