@@ -566,7 +566,7 @@ void irc::Reply_generator::RPL_UMODEIS(const std::string& mode) {
 
 void irc::Reply_generator::RPL_LUSERCLIENT(const int users_count,
 		const int users_invisible, const int servers_count) {
-	m_oss << "251 :There are <integer> users and " << users_count
+	m_oss << "251 :There are " << users_count << " users and " << users_invisible
 			<< " invisible on " << servers_count << " servers" << "\r\n";
 }
 

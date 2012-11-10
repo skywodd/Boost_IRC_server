@@ -35,6 +35,7 @@
 
 /* Dependencies */
 #include <iostream>
+#include <cstdio>
 #include "Server.hpp"
 #include "Configuration.hpp"
 
@@ -46,6 +47,12 @@
  * @return Error code
  */
 int main(int argc, char** argv) {
+
+	/* Bug fix eclipse CDT for windows */
+#ifdef WIN32
+	std::setvbuf(stdout, NULL, _IONBF, 0);
+	std::setvbuf(stderr, NULL, _IONBF, 0);
+#endif
 
 	/* Try to start the server */
 	try {

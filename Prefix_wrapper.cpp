@@ -27,10 +27,11 @@ irc::Prefix_generator::Prefix_generator(const std::string& nickname,
 
 		/* User prefix */
 		m_oss << nickname;
-		if (username != "")
+		if (username != "") {
 			m_oss << "!" << username;
-		if (hostname != "")
-			m_oss << "@" << hostname;
+			if (hostname != "")
+				m_oss << "@" << hostname;
+		}
 
 	} else {
 

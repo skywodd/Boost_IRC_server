@@ -42,11 +42,11 @@ irc::Request_handler::~Request_handler(void) {
 
 void irc::Request_handler::handle_request(void) {
 
-	/* Parse incoming request */
+	/* Parse the incoming request */
 	Request_parser parser(m_parent->getBuffer());
 	if (parser.parse()) { /* If parse success */
 
-		/* Process command */
+		/* Process the request */
 		std::string command = parser.getCommand();
 		m_argv = parser.getArguments();
 		m_argc = parser.getArgumentsCount();
@@ -55,6 +55,7 @@ void irc::Request_handler::handle_request(void) {
 		debug::DEBUG_LOG("Parser", "argv", "");
 		std::copy(m_argv.begin(), m_argv.end(),
 				std::ostream_iterator<std::string>(std::clog, " "));
+		std::clog << std::endl;
 
 		/* Handle the command */
 		if (command == "PASS") {
@@ -110,10 +111,10 @@ void irc::Request_handler::handle_request(void) {
 		} else if (command == "WHOAS") {
 			handle_WHOAS();
 		} else if (command == "NOTICE") {
-			m_parent->updateIdleTime(); /* Update IDLE time */
+			m_parent->updateIdleTime(); /* Update the IDLE time */
 			handle_NOTICE();
 		} else if (command == "PRIVMSG") {
-			m_parent->updateIdleTime(); /* Update IDLE time */
+			m_parent->updateIdleTime(); /* Update the IDLE time */
 			handle_PRIVMSG();
 		} else if (command == "KILL") {
 			handle_KILL();
@@ -143,16 +144,16 @@ void irc::Request_handler::handle_request(void) {
 			debug::DEBUG_LOG(m_parent->getNickname(), "Unknown IRC command",
 					command);
 
-			/* Send answer */
+			/* Send the ERR_UNKNOWNCOMMAND answer */
 			m_reply.addPrefix(m_parent->getServername());
 			m_reply.ERR_UNKNOWNCOMMAND(command);
 			m_parent->write(m_reply.toString());
 		}
 
-		/* Clean reply generator */
+		/* Clean the reply generator */
 		m_reply.flush();
 
-	} else { /* Invalid command */
+	} else { /* Invalid command format received */
 		debug::DEBUG_LOG(m_parent->getNickname(), "Invalid IRC request",
 				parser.getRaw());
 	}
@@ -316,7 +317,7 @@ void irc::Request_handler::handle_USER(void) {
 	m_parent->write(m_reply.toString());
 	m_reply.flush();
 	m_reply.addPrefix(m_parent->getServername());
-	m_reply.CMD_NOTICE("AUTH", "** Checking ident...");
+	m_reply.CMD_NOTICE("AUTH", "*** Checking ident...");
 	m_parent->write(m_reply.toString());
 	m_reply.flush();
 	m_reply.addPrefix(m_parent->getServername());
@@ -1788,7 +1789,7 @@ void irc::Request_handler::handle_PING(void) {
 	}
 
 	/* Check target server */
-	if (m_argv[0] == m_parent->getServername()) {
+	if (m_argv[0] != m_parent->getServername()) {
 
 		/* Ping remote server is not implemented in this program */
 		debug::DEBUG_LOG(m_parent->getNickname(), "No such server");
@@ -1830,7 +1831,7 @@ void irc::Request_handler::handle_PONG(void) {
 	}
 
 	/* Check the target server */
-	if (m_argv[0] == m_parent->getServername()) {
+	if (m_argv[0] != m_parent->getServername()) {
 
 		/* Ping remote server is not implemented in this program */
 		debug::DEBUG_LOG(m_parent->getNickname(), "No such server");
@@ -2148,14 +2149,14 @@ void irc::Request_handler::send_welcome_msg(void) {
 	/* Send server info message */
 	m_reply.addPrefix(m_parent->getServername());
 	m_reply.RPL_CUSTOM("002",
-			m_parent->getNickname() + " :our host is "
+			m_parent->getNickname() + " :Your host is "
 					+ m_parent->getServername()
-					+ ", running version SkyIRC1.0");
+					+ ", running SkyIRC version 1.0");
 	m_parent->write(m_reply.toString());
 	m_reply.flush();
 	m_reply.addPrefix(m_parent->getServername());
 	m_reply.RPL_CUSTOM("003",
-			m_parent->getNickname() + " :This server was created "
+			m_parent->getNickname() + " :This server was created on "
 					+ boost::posix_time::to_simple_string(
 							Server::getInstance()->runSince()));
 	m_parent->write(m_reply.toString());

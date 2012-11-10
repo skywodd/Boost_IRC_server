@@ -43,6 +43,7 @@ namespace irc {
 
 /* Forward declarations */
 class Connection;
+class Configuration;
 
 /**
  * @class Users_manager
@@ -96,8 +97,10 @@ protected:
 public:
 	/**
 	 * Instantiate a new users database
+	 *
+	 * @param configuration Database configuration to use
 	 */
-	explicit Users_manager(void);
+	explicit Users_manager(const Configuration& configuration);
 
 	/**
 	 * Destructor

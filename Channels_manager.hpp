@@ -41,6 +41,7 @@ namespace irc {
 
 /* Forward declarations */
 class Channel_info;
+class Configuration;
 
 /**
  * @class Channels_manager
@@ -73,8 +74,10 @@ protected:
 public:
 	/**
 	 * Instantiate a new channels database
+	 *
+	 * @param configuration Database configuration to use
 	 */
-	explicit Channels_manager(void);
+	explicit Channels_manager(const Configuration& configuration);
 
 	/**
 	 * Destructor

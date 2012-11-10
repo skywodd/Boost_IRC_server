@@ -25,13 +25,13 @@
 #include "Debug_log.hpp"
 #include "Server.hpp"
 
-irc::Channels_manager::Channels_manager(void) :
+irc::Channels_manager::Channels_manager(const Configuration& configuration) :
 		m_database() {
 
 	/* Creating a new database */
 	debug::DEBUG_LOG("Channels database", "Creating database ...");
 	debug::DEBUG_LOG("Channels database, max number of channels",
-			Server::getInstance()->getConfiguration().nb_channels_limit);
+			configuration.nb_channels_limit);
 }
 
 irc::Channels_manager::~Channels_manager(void) {
@@ -85,7 +85,8 @@ void irc::Channels_manager::remove(boost::shared_ptr<Channel_info> channel) {
 	debug::DEBUG_LOG("Remove channel from database", "PTR");
 	std::map<std::string, boost::shared_ptr<Channel_info> >::iterator i =
 			std::find_if(m_database.begin(), m_database.end(),
-					boost::bind(&Channels_manager::search_channel, channel, _1));
+					boost::bind(&Channels_manager::search_channel, channel,
+							_1));
 
 	/* Check if channel is found */
 	if (i != m_database.end())

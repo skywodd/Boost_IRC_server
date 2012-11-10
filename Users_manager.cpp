@@ -55,13 +55,13 @@ void irc::Users_manager::send_notice(boost::shared_ptr<Connection> user,
 	}
 }
 
-irc::Users_manager::Users_manager(void) :
+irc::Users_manager::Users_manager(const Configuration& configuration) :
 		m_database() {
 
 	/* Create a new users database */
 	debug::DEBUG_LOG("Users database", "Creating database ...");
 	debug::DEBUG_LOG("Users database", "max numbers of users",
-			Server::getInstance()->getConfiguration().nb_users_limit);
+			configuration.nb_users_limit);
 }
 
 irc::Users_manager::~Users_manager(void) {
@@ -83,7 +83,7 @@ int irc::Users_manager::getInvisibleUsersCount(void) const {
 
 	/* Process each users of the database */
 	std::set<boost::shared_ptr<Connection> >::iterator i = m_database.begin();
-	std::set<boost::shared_ptr<Connection> >::iterator end;
+	std::set<boost::shared_ptr<Connection> >::iterator end  = m_database.end();
 	for (; i != end; ++i) {
 
 		/* Check user status */
@@ -102,7 +102,7 @@ int irc::Users_manager::getIRCopsCount(void) const {
 
 	/* Process each users of the database */
 	std::set<boost::shared_ptr<Connection> >::iterator i = m_database.begin();
-	std::set<boost::shared_ptr<Connection> >::iterator end;
+	std::set<boost::shared_ptr<Connection> >::iterator end = m_database.end();
 	for (; i != end; ++i) {
 
 		/* Check user status */

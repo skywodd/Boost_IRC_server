@@ -32,10 +32,12 @@ irc::Server* irc::Server::m_instance = NULL;
 irc::Server::Server(const std::string& address, const std::string& port,
 		Configuration& configuration) :
 		m_io_service(), m_signals(m_io_service), m_acceptor(m_io_service), m_configuration(
-				configuration), m_users_database(), m_channels_database(), m_since(
+				configuration), m_users_database(configuration), m_channels_database(
+				configuration), m_since(
 				boost::posix_time::second_clock::local_time()) {
 
 	/* Creating a new server instance */
+	m_instance = this; // Avoid segfault by storing instance pointer before any usage
 	debug::DEBUG_LOG(m_configuration.svdomain, "Creating server instance ...");
 	debug::DEBUG_LOG("Startup time",
 			boost::posix_time::to_simple_string(m_since));

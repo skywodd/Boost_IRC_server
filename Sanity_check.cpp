@@ -23,8 +23,9 @@ bool irc::Sanity_check::is_valid_nickname(const std::string& input) {
 
 	/* Compile regular expression for nickname */
 	boost::regex expression(
-			"^[a-z_\\-\\[\\]\\\\^{}|`][a-z0-9_\\-\\[\\]\\\\^{}|`]{0, 15}$");
-	// Allow : 1 to 16 char nicknames
+			"\\A[a-z_\\-\\[\\]\\\\^{}|`][a-z0-9_\\-\\[\\]\\\\^{}|`]{2,15}\\z",
+			boost::regex_constants::icase | boost::regex_constants::perl);
+	// Allow : 3 to 16 char nicknames
 
 	/* Match the input with the regular expression */
 	return regex_match(input, expression);
@@ -33,7 +34,8 @@ bool irc::Sanity_check::is_valid_nickname(const std::string& input) {
 bool irc::Sanity_check::is_valid_channame(const std::string& input) {
 
 	/* Compile regular expression for channel name */
-	boost::regex expression("^([#&][^\r\n\0]{1, 200})$");
+	boost::regex expression("([#&][^\\x07\\x2C\\s]{1,200})",
+			boost::regex_constants::icase | boost::regex_constants::perl);
 	// Allow : 1 to 200 char channels name
 
 	/* Match the input with the regular expression */
@@ -45,7 +47,8 @@ bool irc::Sanity_check::is_valid_hostname(const std::string& input) {
 
 	/* Compile regular expression for host name */
 	boost::regex expression(
-			"^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$");
+			"^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$",
+			boost::regex::extended);
 
 	/* Match the input with the regular expression */
 	return regex_match(input, expression);

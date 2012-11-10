@@ -201,7 +201,6 @@ void irc::Connection::start(void) {
 void irc::Connection::write(const std::string& buffer) {
 
 	/* Send the message */
-	debug::DEBUG_LOG(m_nickname, "[RAW OUT]", buffer);
 	boost::asio::async_write(m_socket, boost::asio::buffer(buffer),
 			boost::bind(&Connection::handle_write, shared_from_this(),
 					boost::asio::placeholders::error));
