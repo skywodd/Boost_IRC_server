@@ -291,3 +291,18 @@ void irc::Channel_info::writeToAll(const std::string& buffer) {
 	std::for_each(m_users.begin(), m_users.end(),
 			boost::bind(&Channel_info::send_message, _1, buffer));
 }
+
+std::map<boost::shared_ptr<irc::Connection>,
+		irc::Channel_info::Channel_user_info>::iterator irc::Channel_info::getProcessingIterator(
+		void) {
+
+	/* Return the map.begin() iterator */
+	return m_users.begin();
+}
+
+std::map<boost::shared_ptr<irc::Connection>,
+		irc::Channel_info::Channel_user_info>::iterator irc::Channel_info::getEndingIterator(
+		void) {
+	/* Return the map.end() iterator */
+	return m_users.end();
+}

@@ -393,6 +393,21 @@ public:
 	 */
 	void writeToAll(const std::string& buffer);
 
+	/**
+	 * Allow processing of each users who has joined the channel
+	 *
+	 * @return An iterator pointing to the head of the channel users map
+	 */
+	std::map<boost::shared_ptr<Connection>, Channel_user_info>::iterator getProcessingIterator(
+			void);
+
+	/**
+	 * Return the ending iterator of the channel users map
+	 *
+	 * @return An iterator pointing to the end of the channel users map
+	 */
+	std::map<boost::shared_ptr<Connection>, Channel_user_info>::iterator getEndingIterator(
+			void);
 };
 
 } /* namespace irc */
