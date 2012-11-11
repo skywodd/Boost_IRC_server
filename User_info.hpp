@@ -34,7 +34,7 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
@@ -43,6 +43,7 @@ class Channel_info;
 
 /**
  * @class User_info
+ * @brief IRC user informations container
  *
  * This class is designed as a container for IRC informations about an user.\n
  * This class store ALL informations about the user.\n
@@ -158,7 +159,7 @@ public:
 	/**
 	 * Set the user name of the user
 	 *
-	 * @param user name The new user name of the user
+	 * @param username The new user name of the user
 	 */
 	void setUsername(const std::string& username);
 
@@ -327,6 +328,7 @@ public:
 	 * Check if the user as join the specified channel
 	 *
 	 * @param channel_ptr An intelligent pointer to the target to test
+	 * @return True if the user as join the specified channel, false otherwise
 	 */
 	bool asJoin(boost::shared_ptr<Channel_info> channel_ptr) const;
 

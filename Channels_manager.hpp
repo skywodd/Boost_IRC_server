@@ -35,7 +35,7 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
@@ -45,6 +45,7 @@ class Configuration;
 
 /**
  * @class Channels_manager
+ * @brief Channels database manager
  *
  * This class is designed to manage channels database.\n
  * This class allow developer to add, remove and access to channels informations in the database.\n
@@ -67,6 +68,7 @@ protected:
 	 *
 	 * @param channel Pointer to the channel to search
 	 * @param input Pair retrieved from the database to check against "channel"
+	 * @return True if the current channel match with the specified channel, false otherwise
 	 */
 	static bool search_channel(boost::shared_ptr<Channel_info> channel,
 			std::pair<std::string, boost::shared_ptr<Channel_info> > input);
@@ -104,6 +106,7 @@ public:
 	 * Add a new channel into the database
 	 *
 	 * @param name Name of the new channel
+	 * @return Intelligent pointer to the newly created channel
 	 */
 	boost::shared_ptr<Channel_info> add(const std::string& name);
 

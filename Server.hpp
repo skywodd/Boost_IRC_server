@@ -36,7 +36,7 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
@@ -46,6 +46,7 @@ class Configuration;
 
 /**
  * @class Server
+ * @brief Single-threaded TCP server class
  *
  * This class handle all incoming TCP connection on the specified port and bind address.\n
  * This class does NOT handle any IRC communications, only incoming TCP connections.\n
@@ -122,6 +123,7 @@ public:
 	 * @param address Address to bind the server on
 	 * @param port Port to listen on
 	 * @param configuration Server configuration to use
+	 * @return Pointer to the newly created instance
 	 */
 	static Server* createInstance(const std::string& address,
 			const std::string& port, Configuration& configuration);

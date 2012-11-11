@@ -39,7 +39,7 @@
 /**
  * @namespace debug
  *
- * Namespace regrouping all debug utilities.
+ * @brief Namespace regrouping all debug utilities.
  */
 namespace debug {
 

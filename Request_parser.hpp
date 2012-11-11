@@ -1,6 +1,6 @@
 /**
  * @file Request_parser.hpp
- * @brief IRC requests parser
+ * @brief IRC request parser
  * @author SkyWodd
  * @version 1.0
  * @see http://skyduino.wordpress.com/
@@ -33,12 +33,13 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
 /**
  * @class Arguments_Parser
+ * @brief IRC request arguments parser
  *
  * This class is designed to parse IRC arguments list.\n
  * This class take a string as input, split it using ',' as separator and return a list of string.
@@ -54,6 +55,8 @@ protected:
 public:
 	/**
 	 * Instantiate a new parser and process the input string
+	 *
+	 * @param raw_input Input string to parse
 	 */
 	Arguments_Parser(const std::string& raw_input);
 
@@ -81,6 +84,7 @@ public:
 
 /**
  * @class Request_parser
+ * @brief IRC request parser
  *
  * This class is designed to parse IRC request.\n
  * The parser handle request with or without prefix, single command or erroneous request.

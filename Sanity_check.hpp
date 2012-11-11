@@ -31,24 +31,28 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
+/* TODO Function to transform IRC mask to boost regular expression.
+ * TODO Function to transform nickname into collision matching regex
+ */
+
 /**
  * @class Sanity_check
+ * @brief User input sanity checking utility
  *
  * This class is in fact a static functions bundle.\n
  * This class contain useful functions to check validity of various IRC fields.\n
  * For now the supported fields are : nicknames, channels name, host name.
- *
- * @todo Function to transform IRC mask to boost regular expression.
  */
 class Sanity_check {
 public:
 	/**
 	 * Check if the input is a valid nickname string
 	 *
+	 * @param input The input string to check
 	 * @return True if the input is a valid nickname string, false otherwise
 	 */
 	static bool is_valid_nickname(const std::string& input);
@@ -56,6 +60,7 @@ public:
 	/**
 	 * Check if the input is a valid channel name string
 	 *
+	 * @param input The input string to check
 	 * @return True if the input is a valid channel name string, false otherwise
 	 */
 	static bool is_valid_channame(const std::string& input);
@@ -63,6 +68,7 @@ public:
 	/**
 	 * Check if the input is a valid host name string
 	 *
+	 * @param input The input string to check
 	 * @return True if the input is a valid host name string, false otherwise
 	 */
 	static bool is_valid_hostname(const std::string& input);

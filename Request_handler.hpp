@@ -36,7 +36,7 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
@@ -45,6 +45,15 @@ class Connection;
 
 /**
  * @class Request_handler
+ * @brief IRC request parser
+ *
+ * This class is designed to handle incoming IRC request.\n
+ * This class use Request_parser and Reply_generator to parse and answer to incoming requests.\n
+ * \n
+ * All IRC processing is done by this class !\n
+ * IRC features handler are split in two parts, the handler who check connection status, arguments count, ...\n
+ * And the process function who physically make change to channels / users according command.\n
+ * Note: some handlers does not have process function, for example for very small computation command or non implemented commands.
  */
 class Request_handler {
 protected:
@@ -138,7 +147,7 @@ public:
 	/**
 	 * Instantiate a new request handler
 	 *
-	 *  @param connection Parent connection object
+	 *  @param parent Parent Connection object
 	 */
 	Request_handler(Connection* parent);
 

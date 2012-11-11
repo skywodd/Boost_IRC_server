@@ -32,12 +32,13 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
 /**
  * @class Reply_generator
+ * @brief IRC reply string generator
  *
  * This class is designed to craft various IRC reply / command string.\n
  * All reply can be prefixed with a prefix (see Prefix_wrapper.hpp for details).\n

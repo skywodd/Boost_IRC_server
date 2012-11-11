@@ -7,8 +7,6 @@
  *
  * Please report bug to <skywodd at gmail.com>
  *
- * @todo Users research using nickmask expression support
- *
  * @section license_sec License
  *  This program is free software: you can redistribute it and/or modify\n
  *  it under the terms of the GNU General Public License as published by\n
@@ -37,9 +35,11 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
+
+/* TODO Users research using nickmask expression support*/
 
 /* Forward declarations */
 class Connection;
@@ -47,6 +47,7 @@ class Configuration;
 
 /**
  * @class Users_manager
+ * @brief Users database manager
  *
  * This class is designed to manage users database.\n
  * This class allow developer to add, remove and access to users informations in the database.\n
@@ -67,7 +68,7 @@ protected:
 	/**
 	 * Functor : Search user in the database by nickname
 	 *
-	 * @param cur_user Pointer to the user informations to test
+	 * @param user Pointer to the user informations to test
 	 * @param nickname Nickname to search in the database
 	 * @return True if the nickname match, false otherwise
 	 */

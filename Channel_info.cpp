@@ -30,6 +30,13 @@ void irc::Channel_info::send_message(
 	user_pair.first->write(message);
 }
 
+void irc::Channel_info::send_message_except(
+		std::map<boost::shared_ptr<Connection>, Channel_user_info>::value_type user_pair,
+		std::string& message, const std::string& except_user) {
+	if(user_pair.first->getNickname() != except_user)
+		user_pair.first->write(message);
+}
+
 irc::Channel_info::Channel_user_info::Channel_user_info(const bool can_speak,
 		const bool is_op) :
 		m_can_speak(can_speak), m_is_op(is_op) {
@@ -274,6 +281,7 @@ void irc::Channel_info::removeBanmask(const std::string& banmask) {
 bool irc::Channel_info::isBanned(const std::string& banmask) const {
 
 	/* Check if banmask is banned or not */
+	// TODO check against prefix mask (need to create irc mask -> boost regex funtion)
 	return m_banmask.count(banmask);
 }
 
@@ -290,6 +298,15 @@ void irc::Channel_info::writeToAll(const std::string& buffer) {
 	debug::DEBUG_LOG("Channel message", buffer);
 	std::for_each(m_users.begin(), m_users.end(),
 			boost::bind(&Channel_info::send_message, _1, buffer));
+}
+
+void irc::Channel_info::writeToAllExcept(const std::string& buffer,
+			const std::string& except_user) {
+
+	/* Send a message to all users on the channel except one specified */
+		debug::DEBUG_LOG("Channel message", buffer);
+		std::for_each(m_users.begin(), m_users.end(),
+				boost::bind(&Channel_info::send_message_except, _1, buffer, except_user));
 }
 
 std::map<boost::shared_ptr<irc::Connection>,

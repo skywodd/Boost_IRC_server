@@ -36,7 +36,7 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
@@ -45,6 +45,7 @@ class Connection;
 
 /**
  * @class Channel_info
+ * @brief Channel informations container
  *
  * This class is designed as a container for IRC informations about a channel.\n
  * This class store ALL informations about the channel and it's users.\n
@@ -158,18 +159,29 @@ protected:
 	/**
 	 * Functor : Send message to user on channel
 	 *
-	 * @param user Pair of values from the channel list pointing to the user
+	 * @param user_pair Pair of values from the channel list pointing to the user
 	 * @param message Message to send to the user
 	 */
 	static void send_message(
 			std::map<boost::shared_ptr<Connection>, Channel_user_info>::value_type user_pair,
 			std::string& message);
 
+	/**
+	 * Functor : Send message to user on channel except one
+	 *
+	 * @param user_pair Pair of values from the channel list pointing to the user
+	 * @param message Message to send to the user
+	 * @param except_user User to ignore when sending message
+	 */
+	static void send_message_except(
+			std::map<boost::shared_ptr<Connection>, Channel_user_info>::value_type user_pair,
+			std::string& message, const std::string& except_user);
+
 public:
 	/**
 	 * Instantiate a new channel_info object
 	 *
-	 * @param configuration Channel configuration
+	 * @return Intelligent pointer to the newly created Channel_info object
 	 */
 	static boost::shared_ptr<Channel_info> create(void);
 
@@ -331,7 +343,8 @@ public:
 	/**
 	 * Check if user has join the channel
 	 *
-	 * @return user Pointer to the user to test
+	 * @param user Pointer to the user to test
+	 * @return True if the user as join the channel, false otherwise
 	 */
 	bool asJoin(boost::shared_ptr<Connection> user) const;
 
@@ -352,6 +365,7 @@ public:
 	/**
 	 * Check if user has been invited on this channel
 	 *
+	 * @param user Pointer to the user to check against invitation list
 	 * @return user Pointer to the user to test if invited
 	 */
 	bool isInvited(boost::shared_ptr<Connection> user) const;
@@ -392,6 +406,15 @@ public:
 	 * @param buffer Data to send to all users on the channel
 	 */
 	void writeToAll(const std::string& buffer);
+
+	/**
+	 * Write data to all users on the channel except one specified
+	 *
+	 * @param buffer Data to send to all users on the channel
+	 * @param except_user User to ignore when sending message
+	 */
+	void writeToAllExcept(const std::string& buffer,
+			const std::string& except_user);
 
 	/**
 	 * Allow processing of each users who has joined the channel

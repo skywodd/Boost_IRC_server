@@ -1,0 +1,6 @@
+﻿Hi young padawan !
+Welcome to my home made IRC server.
+This server has required 3 weeks of work to finish.
+Don't blame me if some features don't work properly, it's not a bug, it's a feature ;)
+Good chat, may the force be with you !
+(For curious people, IRC ops login is root with password toor)

@@ -35,12 +35,13 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
 /**
  * @struct Configuration
+ * @brief Runtime configuration structure
  *
  * This structure is designed to store default configuration values of the server runtime.
  */

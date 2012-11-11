@@ -39,12 +39,13 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
 /**
  * @class Connection
+ * @brief Socket connection class
  *
  * This class is designed to handle all READ / WRITE operations of user.\n
  * This class also handle ping timeout, IDLE time, channels broadcast and socket closing.\n
@@ -126,6 +127,7 @@ public:
 	 * Instantiate a new connection
 	 *
 	 * @param io_service IO_service to use for callback management
+	 * @return Intelligent pointer to the newly created Connection object
 	 */
 	static boost::shared_ptr<Connection> create(
 			boost::asio::io_service& io_service);

@@ -32,12 +32,13 @@
 /**
  * @namespace irc
  *
- * Namespace regrouping all IRC features of the program.
+ * @brief Namespace regrouping all IRC features of the program.
  */
 namespace irc {
 
 /**
  * @class Prefix_generator
+ * @brief IRC prefix generator
  *
  * This class is designed to craft IRC prefix.\n
  * \n
@@ -80,6 +81,7 @@ public:
 
 /**
  * @class Prefix_parser
+ * @brief IRC prefix parser
  *
  * This class is designed to parse IRC prefix.\n
  * \n
