@@ -59,8 +59,6 @@ protected:
 #if BOOST_VERSION > 104700
 	/** Signal_set used to handle process quit notifications */
 	boost::asio::signal_set m_signals;
-#else
-#warning "You need Boost 1.47 (at least) to have signals support !"
 #endif
 
 	/** Acceptor used to listen of incoming connections */

@@ -31,7 +31,11 @@ irc::Server* irc::Server::m_instance = NULL;
 
 irc::Server::Server(const std::string& address, const std::string& port,
 		Configuration& configuration) :
-		m_io_service(), m_signals(m_io_service), m_acceptor(m_io_service), m_configuration(
+        m_io_service(),
+#if BOOST_VERSION > 104700
+    m_signals(m_io_service),
+#endif
+    m_acceptor(m_io_service), m_configuration(
 				configuration), m_users_database(configuration), m_channels_database(
 				configuration), m_since(
 				boost::posix_time::second_clock::local_time()) {
@@ -52,6 +56,8 @@ irc::Server::Server(const std::string& address, const std::string& port,
 	m_signals.add(SIGQUIT);
 #endif
 	m_signals.async_wait(boost::bind(&Server::stop, this));
+#else
+#warning "You need Boost 1.47 (at least) to have signals support !"
 #endif
 
 	/* Resolve and bind TCP address / port for incoming connection accept */
