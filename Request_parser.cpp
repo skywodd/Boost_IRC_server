@@ -123,8 +123,10 @@ bool irc::Request_parser::parse(void) {
 		}
 
 		/* Add string to the arguments list */
-		m_arguments.push_back(tmp);
-		++m_nb_arguments; /* Update arguments count */
+		if (tmp != "") {
+			m_arguments.push_back(tmp);
+			++m_nb_arguments; /* Update arguments count */
+		}
 
 		/* Get the next word */
 		std::getline(iss, tmp, ' ');

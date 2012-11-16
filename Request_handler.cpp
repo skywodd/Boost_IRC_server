@@ -899,7 +899,7 @@ void irc::Request_handler::process_NAMES(const std::string& channel) {
 				debug::DEBUG_LOG(m_parent->getNickname(), "Send NAMES line");
 				m_reply.addPrefix(m_parent->getServername());
 				m_reply.RPL_NAMREPLY(channel, (*i).second.isOp(),
-						(*i).second.canSpeak(), (*i).first->getNickname());
+						(*i).second.canSpeak(), (*i).first->getPrefix());
 				m_parent->write(m_reply.toString());
 				m_reply.flush();
 			}
