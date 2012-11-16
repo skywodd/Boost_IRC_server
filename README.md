@@ -11,7 +11,7 @@ Designed to be :
 
 ---
 
-### Compilation 
+# Compilation 
 
 ## Remarks
 
@@ -27,7 +27,7 @@ Coded, tested, compiled and debugged on Windows 7 with Boost 1_51 using Eclipse 
 
 ## Compiling
 
-# On MacOSX or Linux
+### On MacOSX or Linux
 
     cd <path to Boost_IRC_server root>
     mkdir build
@@ -36,7 +36,7 @@ Coded, tested, compiled and debugged on Windows 7 with Boost 1_51 using Eclipse 
     make
     make doc
 
-# On Widows
+### On Widows
 
 You need to install Visual Studio 2008
 
@@ -49,7 +49,7 @@ You need to install Visual Studio 2008
 
 ---
 
-### Supported IRC commands
+# Supported IRC commands
 
 Command    - Support - Comment (if any)
 * PASS     - full    - Does not make difference between client and server PASS
