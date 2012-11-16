@@ -1,10 +1,9 @@
 # Bootstraping eclipse makefile 
 
 all: 
-	$(MAKE) -C Debug all
-	cp ./Debug/Boost_IRC_server.exe serveur_irc
+	$(MAKE) -C release all
 
 clean: 
-	$(MAKE) -C Debug clean
+	$(MAKE) -C release clean
 
-.PHONY: Debug
+.PHONY: release
