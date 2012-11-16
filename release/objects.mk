@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lboost_system -lboost_date_time -lboost_regex
+LIBS := -lboost_system$(LIB_SUFFIX) -lboost_date_time$(LIB_SUFFIX) -lboost_regex$(LIB_SUFFIX) $(LIB_ADDON)
 
