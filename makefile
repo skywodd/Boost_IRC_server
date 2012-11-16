@@ -37,9 +37,9 @@ BUILD_OPS := -DDEBUG -O0 -g -Wall
 #LIB_ADDON := -lMswsock -lWs2_32
 
 # DO NOT EDIT AFTER THIS LINE -------------------------
-# Excepted if you known that you make ...
+# Excepted if you known what you make ...
 # 
-# Trust me, I a jedi
+# Trust me, I'm a jedi
 
 # Libraries dependencies
 LIBS := -lboost_system$(LIB_SUFFIX) -lboost_date_time$(LIB_SUFFIX) -lboost_regex$(LIB_SUFFIX) $(LIB_ADDON)
